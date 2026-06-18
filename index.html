@@ -221,6 +221,9 @@
   .ui-tag.t-all{background:var(--card2);color:var(--text);}
   .ui-tag.t-hk{background:rgba(14,165,233,0.18);color:#38bdf8;}
   .ui-tag.t-eng{background:rgba(249,115,22,0.18);color:#fb923c;}
+  .hotel-checks{display:flex;flex-direction:column;gap:8px;background:var(--card2);padding:11px 13px;border:1px solid var(--line);border-radius:11px;margin-bottom:6px;}
+  .hotel-checks label{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text);cursor:pointer;}
+  .hotel-checks input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent);cursor:pointer;}
   .user-item .ui-acts{display:flex;gap:5px;flex-shrink:0;}
   .user-item .ui-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--card2);color:var(--text);font-size:13px;cursor:pointer;}
   .user-item .ui-btn.danger{color:var(--open);border-color:rgba(239,68,68,0.3);}
@@ -564,6 +567,14 @@
         <b>Role:</b> Admin = COO (akses penuh + hapus). Editor = bisa CRUD defect. Viewer = lihat saja.<br>
         <b>Divisi:</b> ALL = bebas semua kategori. HK = hanya Housekeeping. ENG = hanya Engineering.
       </div>
+      <label class="fld">Akses Hotel</label>
+      <div id="ufHotelsBox" class="hotel-checks">
+        <label><input type="checkbox" value="Verse Luxe Wahid Hasyim"> 🏛️ Verse Luxe Wahid Hasyim</label>
+        <label><input type="checkbox" value="Verse Lite Gajah Mada"> 💜 Verse Lite Gajah Mada</label>
+        <label><input type="checkbox" value="Verse Hotel Cirebon"> 🌊 Verse Hotel Cirebon</label>
+        <label><input type="checkbox" value="Oak Tree Mahakam Blok M"> 🌸 Oak Tree Mahakam Blok M</label>
+      </div>
+      <div class="hint-txt" style="margin:-4px 0 14px;font-size:11px;">Pilih hotel yang boleh diakses user ini. Centang minimal 1.</div>
       <button class="btn-primary" id="ufSaveBtn" onclick="saveUser()">💾 Simpan</button>
       <button class="btn-ghost" onclick="closeUserForm()">Batal</button>
     </div>
@@ -761,10 +772,10 @@ function closeUserMgmt(){ document.getElementById('userMgmtModal').classList.rem
 async function loadUsers(){
   showLoading('Memuat daftar user...');
   try{
-    const {data,error}=await supa.from('defect_users').select('email,name,role,division').order('role',{ascending:true}).order('email',{ascending:true});
+    const {data,error}=await supa.from('defect_users').select('email,name,role,division,hotels').order('role',{ascending:true}).order('email',{ascending:true});
     hideLoading();
     if(error) throw new Error(error.message);
-    usersCache=data||[];
+    usersCache=(data||[]).filter(u=>(u.hotels||[]).includes(HOTEL));
     renderUsers();
   }catch(e){ hideLoading(); showToast('Gagal memuat: '+e.message); }
 }
@@ -783,6 +794,7 @@ function renderUsers(){
         <div class="ui-tags">
           <span class="ui-tag ${roleClass}">${u.role||'editor'}</span>
           <span class="ui-tag ${divClass}">${divIcon} ${div}</span>
+          ${(u.hotels||[]).length>1?`<span class="ui-tag t-all">🌐 ${(u.hotels||[]).length} hotel</span>`:''}
         </div>
       </div>
       <div class="ui-acts">
@@ -803,6 +815,8 @@ function openUserForm(){
   // Default: editor + ALL
   document.querySelector('#ufSegRole .seg-opt[data-v="editor"]').classList.add('active');
   document.querySelector('#ufSegDivision .seg-opt[data-v="ALL"]').classList.add('active');
+  // Default hotel: cuma hotel ini ter-centang
+  document.querySelectorAll('#ufHotelsBox input').forEach(i=>i.checked = (i.value===HOTEL));
   document.getElementById('userFormModal').classList.add('show');
 }
 function closeUserForm(){ document.getElementById('userFormModal').classList.remove('show'); }
@@ -823,6 +837,9 @@ function editUser(email){
   const d=u.division||'ALL';
   document.querySelector(`#ufSegRole .seg-opt[data-v="${r}"]`)?.classList.add('active');
   document.querySelector(`#ufSegDivision .seg-opt[data-v="${d}"]`)?.classList.add('active');
+  // Set hotels checkboxes
+  const userHotels = u.hotels || [];
+  document.querySelectorAll('#ufHotelsBox input').forEach(i=>i.checked = userHotels.includes(i.value));
   document.getElementById('userFormModal').classList.add('show');
 }
 
@@ -847,7 +864,10 @@ async function saveUser(){
       // Email tidak bisa diubah (disabled di form), tapi kalau somehow berubah, tolak
       throw new Error('Email tidak bisa diubah. Hapus user lalu tambah baru.');
     }
-    const row={email, name:name||null, role, division};
+    // Ambil hotels dari checkbox; selalu sertakan HOTEL ini (supaya admin tidak salah hapus akses ke hotel ini sendiri)
+    const hotels = Array.from(document.querySelectorAll('#ufHotelsBox input:checked')).map(i=>i.value);
+    if(!hotels.includes(HOTEL)) hotels.push(HOTEL);
+    const row={email, name:name||null, role, division, hotels};
     const {error}=await supa.from('defect_users').upsert(row);
     if(error) throw new Error(error.message);
     hideLoading();
@@ -941,10 +961,17 @@ async function doLogin(){
   if(!email){ errEl.textContent='Email wajib diisi'; errEl.style.display='block'; return; }
   showLoading('Memeriksa akses...');
   try{
-    const {data, error} = await supa.from('defect_users').select('email,role,name,division').eq('email', email).maybeSingle();
+    const {data, error} = await supa.from('defect_users').select('email,role,name,division,hotels').eq('email', email).maybeSingle();
     hideLoading();
     if(error){ errEl.textContent='Koneksi gagal: '+error.message; errEl.style.display='block'; return; }
     if(!data){ errEl.textContent='Email tidak terdaftar. Hubungi COO.'; errEl.style.display='block'; return; }
+    // Cek akses hotel
+    const userHotels = data.hotels || [];
+    if(!userHotels.includes(HOTEL)){
+      errEl.textContent='⛔ Akun Anda tidak memiliki akses ke '+HOTEL+'. Hubungi COO.';
+      errEl.style.display='block';
+      return;
+    }
     currentUser = data;
     localStorage.setItem('defect_user_email', email);
     enterApp();
@@ -1925,9 +1952,9 @@ window.addEventListener('load', async ()=>{
   if(saved){
     showLoading('Masuk...');
     try{
-      const {data}=await supa.from('defect_users').select('email,role,name,division').eq('email',saved).maybeSingle();
+      const {data}=await supa.from('defect_users').select('email,role,name,division,hotels').eq('email',saved).maybeSingle();
       hideLoading();
-      if(data){ currentUser=data; enterApp(); return; }
+      if(data && (data.hotels||[]).includes(HOTEL)){ currentUser=data; enterApp(); return; } else if(data){ localStorage.removeItem('defect_user_email'); }
     }catch(e){ hideLoading(); }
   }
 });
