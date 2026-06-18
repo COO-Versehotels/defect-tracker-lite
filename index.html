@@ -1481,15 +1481,19 @@ let currentTab='defects';
 function switchTab(tab){
   currentTab=tab;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-  document.getElementById('viewDefects').style.display = tab==='defects'?'block':'none';
-  document.getElementById('viewRooms').style.display   = tab==='rooms'?'block':'none';
-  document.getElementById('viewPublic').style.display  = tab==='public'?'block':'none';
-  document.getElementById('viewFB').style.display      = tab==='fb'?'block':'none';
+  const setView = (id, show) => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = show ? 'block' : 'none';
+  };
+  setView('viewDefects', tab==='defects');
+  setView('viewRooms',   tab==='rooms');
+  setView('viewPublic',  tab==='public');
+  setView('viewFB',      tab==='fb');
   // FAB hanya untuk tab Laporan
   document.getElementById('fab').classList.toggle('hidden', tab!=='defects' || !canEdit());
   if(tab==='rooms') renderRoomsView();
   if(tab==='public') renderSubAreaView('Public Area');
-  if(tab==='fb') renderSubAreaView('F&B');
+  if(tab==='fb' && document.getElementById('viewFB')) renderSubAreaView('F&B');
 }
 
 // ===== SUB-AREA VIEW (Public Area & F&B) =====
@@ -1515,6 +1519,7 @@ function renderSubAreaView(area){
   const list = area==='Public Area' ? PUBLIC_AREAS : FB_AREAS;
   const summaryEl = area==='Public Area' ? document.getElementById('publicSummary') : document.getElementById('fbSummary');
   const listEl = area==='Public Area' ? document.getElementById('publicList') : document.getElementById('fbList');
+  if(!summaryEl || !listEl) return; // view ini tidak ada di app (mis. F&B di Verse Lite)
   // Hitung summary
   const counts={clean:0,open:0,prog:0,pend:0,done:0};
   const map={};
