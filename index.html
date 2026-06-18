@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Defect Follow Up Tracker — Verse Luxe</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Spline+Sans+Mono:wght@400;500;600&display=swap');
+  :root{
+    --bg:#1a0f24;--bg2:#241432;--card:#2c1a3f;--card2:#3a2152;--line:#4a2c69;--line2:#5a3580;
+    --text:#f4eff9;--muted:#b8a2d4;--muted2:#8a78a4;--accent:#8b5cf6;--accent2:#a78bfa;
+    --gold:#f3c033;
+    --open:#ef4444;--open-bg:rgba(239,68,68,0.14);--prog:#f59e0b;--prog-bg:rgba(245,158,11,0.14);
+    --pend:#ec4899;--pend-bg:rgba(236,72,153,0.14);--done:#22c55e;--done-bg:rgba(34,197,94,0.14);
+    --p-low:#64748b;--p-med:#8b5cf6;--p-high:#f59e0b;--p-urgent:#ef4444;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:'Outfit',system-ui,sans-serif;background:var(--bg);
+    background-image:radial-gradient(circle at 15% 0%,rgba(139,92,246,0.12),transparent 40%),radial-gradient(circle at 85% 100%,rgba(243,192,51,0.08),transparent 40%);
+    background-attachment:fixed;color:var(--text);min-height:100vh;padding-bottom:90px;font-size:15px;}
+  ::-webkit-scrollbar{width:6px;height:6px;}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:99px;}
+  #login{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#1a0f24,#2c1a3f);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;}
+  #login .logo-circ{width:80px;height:80px;border-radius:22px;background:linear-gradient(135deg,var(--accent),#5b21b6);display:flex;align-items:center;justify-content:center;font-size:38px;box-shadow:0 20px 50px rgba(139,92,246,0.4);overflow:hidden;}
+  #login h1{font-size:22px;font-weight:800;letter-spacing:-0.5px;text-align:center;}
+  #login p{color:var(--muted);font-size:13px;text-align:center;margin-top:-10px;}
+  #login .lcard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;width:100%;max-width:380px;margin-top:8px;}
+  #login input{width:100%;padding:14px 16px;background:var(--bg);border:1.5px solid var(--line);border-radius:12px;color:var(--text);font-size:15px;font-family:inherit;margin-bottom:14px;}
+  #login input:focus{outline:none;border-color:var(--accent);}
+  #login button{width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent),#1e40af);color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;}
+  #login button:active{transform:scale(0.98);}
+  #login .err{color:var(--open);font-size:13px;margin-bottom:12px;display:none;text-align:center;}
+  #login .hint{font-size:11px;color:var(--muted2);text-align:center;margin-top:14px;line-height:1.5;}
+  .topbar{position:sticky;top:0;z-index:100;background:rgba(13,21,32,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .topbar .brand{display:flex;align-items:center;gap:11px;min-width:0;}
+  .topbar .brand .ic{width:38px;height:38px;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,var(--accent),#5b21b6);display:flex;align-items:center;justify-content:center;font-size:19px;overflow:hidden;}
+  .topbar .brand .tt{min-width:0;}
+  .topbar .brand .tt h1{font-size:15px;font-weight:800;letter-spacing:-0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .topbar .brand .tt .hotel{font-size:11px;color:var(--accent2);font-weight:600;}
+  .topbar .acts{display:flex;gap:8px;flex-shrink:0;}
+  .icon-btn{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+  .icon-btn:hover{background:var(--card2);border-color:var(--line2);}
+  .role-pill{font-size:10px;font-weight:700;padding:5px 10px;border-radius:8px;background:var(--card2);color:var(--accent2);border:1px solid var(--line2);text-transform:uppercase;letter-spacing:0.4px;align-self:center;}
+  .container{max-width:760px;margin:0 auto;padding:18px;}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:20px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 10px;text-align:center;cursor:pointer;transition:all .15s;}
+  .stat:active{transform:scale(0.96);}
+  .stat.active{border-color:var(--accent);background:var(--card2);}
+  .stat .n{font-size:24px;font-weight:800;font-family:'Spline Sans Mono',monospace;line-height:1;}
+  .stat .l{font-size:10px;color:var(--muted);margin-top:5px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
+  .stat.s-open .n{color:var(--open);}.stat.s-prog .n{color:var(--prog);}.stat.s-pend .n{color:var(--pend);}.stat.s-done .n{color:var(--done);}
+  .filters{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;}
+  .tab-switch{display:flex;gap:6px;margin-bottom:18px;background:var(--card);padding:5px;border-radius:14px;border:1px solid var(--line);overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tab-btn{flex:1;min-width:fit-content;padding:11px 14px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;}
+  .tab-btn.active{background:var(--accent);color:white;box-shadow:0 4px 12px rgba(59,130,246,0.35);}
+  .rooms-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px;}
+  .rsum{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 6px;text-align:center;}
+  .rsum .rsum-n{font-size:20px;font-weight:800;font-family:'Spline Sans Mono',monospace;line-height:1;}
+  .rsum .rsum-l{font-size:9px;color:var(--muted);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
+  .rsum.r-clean .rsum-n{color:var(--done);}
+  .rsum.r-open .rsum-n{color:var(--open);}
+  .rsum.r-prog .rsum-n{color:var(--prog);}
+  .rsum.r-pend .rsum-n{color:var(--pend);}
+  .rsum.r-done .rsum-n{color:#94a3b8;}
+  .rooms-legend{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;font-size:11px;color:var(--muted);margin-bottom:16px;padding:10px;background:var(--card);border-radius:11px;border:1px solid var(--line);}
+  .rooms-legend span{display:flex;align-items:center;gap:5px;}
+  .rdot{display:inline-block;width:12px;height:12px;border-radius:4px;}
+  .rdot.r-clean{background:var(--done);}
+  .rdot.r-open{background:var(--open);}
+  .rdot.r-prog{background:var(--prog);}
+  .rdot.r-pend{background:var(--pend);}
+  .rdot.r-done{background:#64748b;}
+  .floor-block{margin-bottom:18px;}
+  .floor-title{font-size:12px;font-weight:800;color:var(--accent2);letter-spacing:0.4px;margin-bottom:10px;text-transform:uppercase;}
+  .room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:7px;}
+  .room-cell{aspect-ratio:1;border-radius:10px;border:1.5px solid var(--line);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;}
+  .room-cell:active{transform:scale(0.92);}
+  .room-cell .rc-num{font-size:13px;font-weight:800;font-family:'Spline Sans Mono',monospace;color:var(--text);}
+  .room-cell .rc-tag{font-size:8px;font-weight:700;color:var(--muted2);}
+  .room-cell .rc-dot{position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;}
+  .room-cell.r-clean{border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.06);}
+  .room-cell.r-open{border-color:var(--open);background:rgba(239,68,68,0.10);}
+  .room-cell.r-prog{border-color:var(--prog);background:rgba(245,158,11,0.10);}
+  .room-cell.r-pend{border-color:var(--pend);background:rgba(168,85,247,0.10);}
+  .room-cell.r-done{border-color:rgba(100,116,139,0.5);background:rgba(100,116,139,0.08);}
+  .room-cell .rc-cnt{position:absolute;bottom:3px;right:4px;font-size:9px;font-weight:800;color:var(--text);background:rgba(0,0,0,0.4);border-radius:5px;padding:1px 4px;line-height:1;}
+  .subarea-list{display:flex;flex-direction:column;gap:9px;}
+  .subarea-item{padding:14px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);display:flex;justify-content:space-between;align-items:center;gap:12px;cursor:pointer;transition:all .15s;}
+  .subarea-item:active{transform:scale(0.98);}
+  .subarea-item.r-clean{border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.06);}
+  .subarea-item.r-open{border-color:var(--open);background:rgba(239,68,68,0.10);}
+  .subarea-item.r-prog{border-color:var(--prog);background:rgba(245,158,11,0.10);}
+  .subarea-item.r-pend{border-color:var(--pend);background:rgba(168,85,247,0.10);}
+  .subarea-item.r-done{border-color:rgba(100,116,139,0.5);background:rgba(100,116,139,0.08);}
+  .subarea-item .sa-name{font-size:14px;font-weight:700;flex:1;min-width:0;}
+  .subarea-item .sa-cnt{font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;background:var(--card2);color:var(--muted);white-space:nowrap;}
+  .subarea-item.r-clean .sa-cnt{color:var(--done);background:rgba(34,197,94,0.15);}
+  .subarea-item.r-open .sa-cnt{color:var(--open);background:rgba(239,68,68,0.15);}
+  .subarea-item.r-prog .sa-cnt{color:var(--prog);background:rgba(245,158,11,0.15);}
+  .subarea-item.r-pend .sa-cnt{color:var(--pend);background:rgba(168,85,247,0.15);}
+  .subarea-item.r-done .sa-cnt{color:#94a3b8;background:rgba(100,116,139,0.15);}
+  .search-wrap{position:relative;margin-bottom:14px;}
+  .search-ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;opacity:0.6;pointer-events:none;}
+  .search-inp{width:100%;padding:12px 40px 12px 40px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;color:var(--text);font-size:14px;font-family:inherit;}
+  .search-inp:focus{outline:none;border-color:var(--accent);}
+  .search-inp::placeholder{color:var(--muted2);}
+  .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:8px;background:var(--card2);color:var(--muted);border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .search-clear:hover{background:var(--line2);color:var(--text);}
+  .chip{flex-shrink:0;padding:8px 15px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit;}
+  .chip.active{background:var(--accent);border-color:var(--accent);color:white;}
+  .defect-list{display:flex;flex-direction:column;gap:13px;}
+  .defect{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;transition:all .15s;animation:fadeUp .35s both;}
+  .report-card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;animation:fadeUp .35s both;margin-bottom:14px;}
+  .report-head{padding:15px 16px;background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(59,130,246,0.04));border-bottom:1px solid var(--line);cursor:pointer;}
+  .report-head .report-loc{font-size:16px;font-weight:700;margin:7px 0 6px;}
+  .report-head .report-meta{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);}
+  .sub-defect{border-bottom:1px solid var(--line);}
+  .sub-defect:last-child{border-bottom:none;}
+  .sub-head{padding:13px 16px 8px;cursor:pointer;}
+  .sub-defect .desc{font-size:14px;font-weight:600;line-height:1.4;word-break:break-word;}
+  .sub-defect .meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin-top:5px;}
+  @keyframes fadeUp{from{transform:translateY(12px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .defect-head{padding:15px 16px 12px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;}
+  .defect-head .body{flex:1;min-width:0;}
+  .defect .area-tag{display:inline-block;font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;text-transform:uppercase;letter-spacing:0.5px;background:var(--card2);color:var(--accent2);border:1px solid var(--line2);}
+  .def-num{font-size:12px;font-weight:800;color:var(--accent2);font-family:'Spline Sans Mono',monospace;}
+  .cat-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;letter-spacing:0.3px;}
+  .cat-badge.cat-hk{background:rgba(14,165,233,0.18);color:#38bdf8;}
+  .cat-badge.cat-eng{background:rgba(249,115,22,0.18);color:#fb923c;}
+  .pending-banner{margin:0 16px 12px;padding:9px 12px;background:var(--pend-bg);border:1px solid rgba(168,85,247,0.3);border-radius:9px;font-size:12px;color:#c4b5fd;line-height:1.5;}
+  .done-banner{margin:0 16px 12px;padding:9px 12px;background:var(--done-bg);border:1px solid rgba(34,197,94,0.3);border-radius:9px;font-size:12px;color:#86efac;line-height:1.5;}
+  .byline{margin:8px 16px 10px;padding:8px 11px;background:var(--card2);border:1px solid var(--line);border-radius:9px;font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:4px;line-height:1.4;}
+  .byline span{display:block;}
+  .byline b{color:var(--text);font-weight:600;}
+  .log-summary{padding:11px 14px;background:var(--card2);border:1px solid var(--line);border-radius:11px;margin-bottom:14px;font-size:12px;color:var(--muted);}
+  .log-list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;}
+  .log-item{display:flex;gap:11px;padding:11px 12px;background:var(--card);border:1px solid var(--line);border-radius:11px;font-size:13px;align-items:flex-start;}
+  .log-item .log-ic{font-size:18px;flex-shrink:0;margin-top:1px;}
+  .log-item .log-body{flex:1;min-width:0;line-height:1.45;}
+  .log-item .log-user{font-weight:700;color:var(--accent2);font-size:12px;}
+  .log-item .log-act{font-weight:600;color:var(--text);}
+  .log-item .log-det{color:var(--muted);font-size:12px;margin-top:3px;word-break:break-word;}
+  .log-item .log-time{font-size:11px;color:var(--muted2);font-family:'Spline Sans Mono',monospace;flex-shrink:0;margin-top:1px;text-align:right;min-width:88px;}
+  .log-empty{text-align:center;padding:40px 20px;color:var(--muted);}
+  .defect .desc{font-size:15px;font-weight:600;line-height:1.4;margin-bottom:6px;word-break:break-word;}
+  .defect .meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);}
+  .defect .meta span{display:flex;align-items:center;gap:4px;}
+  .defect .right{display:flex;flex-direction:column;align-items:flex-end;gap:7px;flex-shrink:0;}
+  .badge{font-size:10px;font-weight:700;padding:4px 10px;border-radius:7px;white-space:nowrap;text-transform:uppercase;letter-spacing:0.3px;}
+  .badge.b-open{background:var(--open-bg);color:var(--open);}.badge.b-prog{background:var(--prog-bg);color:var(--prog);}
+  .badge.b-pend{background:var(--pend-bg);color:var(--pend);}.badge.b-done{background:var(--done-bg);color:var(--done);}
+  .prio{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap;}
+  .prio.p-low{background:rgba(100,116,139,0.18);color:#94a3b8;}.prio.p-med{background:rgba(59,130,246,0.18);color:var(--accent2);}
+  .prio.p-high{background:rgba(245,158,11,0.18);color:var(--prog);}.prio.p-urgent{background:rgba(239,68,68,0.18);color:var(--open);}
+  .photo-strip{display:flex;gap:7px;padding:0 16px 15px;}
+  .photo-strip .ph{flex:1;aspect-ratio:1;border-radius:10px;overflow:hidden;position:relative;background:var(--bg2);border:1px dashed var(--line2);display:flex;align-items:center;justify-content:center;}
+  .photo-strip .ph img{width:100%;height:100%;object-fit:cover;}
+  .photo-strip .ph .ph-label{position:absolute;bottom:0;left:0;right:0;font-size:9px;font-weight:700;text-align:center;padding:3px;background:rgba(0,0,0,0.6);color:#fff;text-transform:uppercase;letter-spacing:0.4px;}
+  .photo-strip .ph.empty .ph-icon{font-size:18px;opacity:0.3;}
+  .photo-strip .ph.empty .ph-label{background:transparent;color:var(--muted2);position:static;}
+  .photo-strip .ph .ph-count{position:absolute;top:4px;right:4px;background:rgba(59,130,246,0.92);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;}
+  .gal-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.14);color:#fff;border:none;font-size:28px;cursor:pointer;z-index:5;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .defect-foot{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--bg2);}
+  .foot-btn{flex:1;padding:9px;border-radius:9px;border:1px solid var(--line2);background:var(--card);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px;}
+  .foot-btn:active{transform:scale(0.96);}
+  .foot-btn.danger{color:var(--open);border-color:rgba(239,68,68,0.3);}
+  .foot-btn.primary-ghost{color:var(--accent2);border-color:var(--accent);background:rgba(59,130,246,0.08);}
+  .status-opt{padding:15px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;transition:all .15s;}
+  .status-opt:active{transform:scale(0.98);}
+  .status-opt.s-open:hover{border-color:var(--open);}
+  .status-opt.s-prog:hover{border-color:var(--prog);}
+  .status-opt.s-pend:hover{border-color:var(--pend);}
+  .status-opt.s-done:hover{border-color:var(--done);}
+  .upd-info{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:18px;}
+  .upd-info .ui-loc{font-size:15px;font-weight:700;margin-bottom:4px;}
+  .upd-info .ui-desc{font-size:13px;color:var(--muted);line-height:1.4;}
+  .foot-btn:disabled{opacity:0.35;cursor:not-allowed;}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+  .empty-state .ic{font-size:54px;margin-bottom:14px;opacity:0.4;}
+  .empty-state h3{font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px;}
+  .empty-state p{font-size:13px;line-height:1.6;}
+  .fab{position:fixed;bottom:22px;right:22px;z-index:200;width:60px;height:60px;border-radius:20px;border:none;background:linear-gradient(135deg,var(--accent),#1e40af);color:white;font-size:30px;cursor:pointer;box-shadow:0 12px 32px rgba(59,130,246,0.45);display:flex;align-items:center;justify-content:center;transition:all .2s;}
+  .fab:active{transform:scale(0.9) rotate(90deg);}
+  .fab.hidden{display:none;}
+  .modal-bg{position:fixed;inset:0;z-index:500;background:rgba(5,10,18,0.75);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center;}
+  .modal-bg.show{display:flex;}
+  .modal{background:var(--bg2);width:100%;max-width:760px;max-height:94vh;overflow-y:auto;border-radius:24px 24px 0 0;border:1px solid var(--line);border-bottom:none;animation:slideUp .3s cubic-bezier(.2,1,.4,1);}
+  @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  .modal-head{position:sticky;top:0;background:var(--bg2);z-index:5;padding:18px 20px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .modal-head h2{font-size:18px;font-weight:800;flex:1;}
+  .modal-body{padding:20px;}
+  label.fld{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;}
+  .inp,select.inp,textarea.inp{width:100%;padding:13px 15px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;color:var(--text);font-size:15px;font-family:inherit;margin-bottom:18px;}
+  .inp:focus,select.inp:focus,textarea.inp:focus{outline:none;border-color:var(--accent);}
+  textarea.inp{resize:vertical;min-height:80px;line-height:1.5;}
+  select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238ba3c4' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 15px center;padding-right:42px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .seg{display:grid;gap:7px;margin-bottom:18px;}
+  .seg.cols4{grid-template-columns:repeat(2,1fr);}
+  .seg-opt{padding:11px;border-radius:11px;border:1.5px solid var(--line);background:var(--card);text-align:center;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--muted);}
+  .seg-opt.active{color:white;}
+  .seg-opt[data-v="Open"].active{background:var(--open);border-color:var(--open);}
+  .seg-opt[data-v="In Progress"].active{background:var(--prog);border-color:var(--prog);}
+  .seg-opt[data-v="Pending"].active{background:var(--pend);border-color:var(--pend);}
+  .seg-opt[data-v="Done"].active{background:var(--done);border-color:var(--done);}
+  .seg-opt[data-v="HK"].active{background:#0ea5e9;border-color:#0ea5e9;}
+  .seg-opt[data-v="ENG"].active{background:#f97316;border-color:#f97316;}
+  .seg-opt[data-v="ALL"].active{background:var(--accent);border-color:var(--accent);}
+  .seg-opt[data-v="admin"].active{background:#8b5cf6;border-color:#8b5cf6;}
+  .seg-opt[data-v="editor"].active{background:var(--accent);border-color:var(--accent);}
+  .seg-opt[data-v="viewer"].active{background:#64748b;border-color:#64748b;}
+  .user-item{display:flex;gap:11px;padding:13px 14px;background:var(--card);border:1px solid var(--line);border-radius:11px;font-size:13px;align-items:center;}
+  .user-item .ui-body{flex:1;min-width:0;line-height:1.45;}
+  .user-item .ui-email{font-weight:700;color:var(--text);font-size:13px;word-break:break-all;}
+  .user-item .ui-name{color:var(--muted);font-size:12px;margin-top:2px;}
+  .user-item .ui-tags{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;}
+  .user-item .ui-tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:0.3px;}
+  .ui-tag.t-admin{background:rgba(139,92,246,0.18);color:#a78bfa;}
+  .ui-tag.t-editor{background:rgba(59,130,246,0.18);color:var(--accent2);}
+  .ui-tag.t-viewer{background:rgba(100,116,139,0.18);color:#94a3b8;}
+  .ui-tag.t-all{background:var(--card2);color:var(--text);}
+  .ui-tag.t-hk{background:rgba(14,165,233,0.18);color:#38bdf8;}
+  .ui-tag.t-eng{background:rgba(249,115,22,0.18);color:#fb923c;}
+  .user-item .ui-acts{display:flex;gap:5px;flex-shrink:0;}
+  .user-item .ui-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--card2);color:var(--text);font-size:13px;cursor:pointer;}
+  .user-item .ui-btn.danger{color:var(--open);border-color:rgba(239,68,68,0.3);}
+  .seg-opt[data-v="Low"].active{background:var(--p-low);border-color:var(--p-low);}
+  .seg-opt[data-v="Medium"].active{background:var(--p-med);border-color:var(--p-med);}
+  .seg-opt[data-v="High"].active{background:var(--p-high);border-color:var(--p-high);}
+  .seg-opt[data-v="Urgent"].active{background:var(--p-urgent);border-color:var(--p-urgent);}
+  .photo-stage{margin-bottom:16px;}
+  .stage-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .stage-name{font-size:13px;font-weight:700;color:var(--text);}
+  .stage-count{font-size:11px;font-weight:600;color:var(--muted);background:var(--card);padding:3px 9px;border-radius:7px;border:1px solid var(--line);}
+  .photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+  .pg-item{position:relative;aspect-ratio:1;border-radius:11px;overflow:hidden;border:1.5px solid var(--accent);}
+  .pg-item img{width:100%;height:100%;object-fit:cover;display:block;}
+  .pg-item .pg-rm{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:6px;background:rgba(0,0,0,0.7);color:#fff;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;}
+  .pg-add{aspect-ratio:1;border-radius:11px;border:1.5px dashed var(--line2);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:all .15s;color:var(--muted);}
+  .pg-add:active{transform:scale(0.94);}
+  .pg-add .pa-ic{font-size:20px;opacity:0.6;}
+  .pg-add .pa-tx{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;}
+  .photo-up .tag{position:absolute;bottom:0;left:0;right:0;font-size:9px;font-weight:700;text-align:center;padding:3px;background:rgba(0,0,0,0.6);color:#fff;text-transform:uppercase;z-index:1;pointer-events:none;}
+  .btn-primary{width:100%;padding:15px;border-radius:13px;border:none;background:linear-gradient(135deg,var(--accent),#1e40af);color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px;}
+  .btn-primary:active{transform:scale(0.98);}
+  .btn-primary:disabled{opacity:0.5;}
+  .btn-ghost{width:100%;padding:13px;border-radius:13px;border:1px solid var(--line2);background:transparent;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:10px;}
+  .viewer{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.92);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:20px;}
+  .viewer.show{display:flex;}
+  .viewer img{max-width:100%;max-height:80vh;border-radius:12px;}
+  .viewer .vlabel{color:white;font-weight:700;font-size:14px;}
+  .viewer .vclose{position:absolute;top:20px;right:20px;width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.12);color:white;border:none;font-size:22px;cursor:pointer;}
+  .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card2);border:1px solid var(--line2);color:var(--text);padding:13px 22px;border-radius:13px;font-size:14px;font-weight:600;z-index:900;opacity:0;transition:all .3s;box-shadow:0 12px 30px rgba(0,0,0,0.4);pointer-events:none;max-width:90%;text-align:center;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .hint-txt{font-size:12px;color:var(--muted);margin-top:-12px;margin-bottom:16px;line-height:1.5;}
+  .form-section-title{font-size:13px;font-weight:800;color:var(--accent2);margin:22px 0 14px;padding-bottom:8px;border-bottom:1.5px solid var(--line);letter-spacing:0.3px;}
+  .form-section-title:first-child{margin-top:0;}
+  .opt-tag{font-weight:500;color:var(--muted2);text-transform:none;letter-spacing:0;}
+  .btn-add-defect{width:100%;padding:13px;border-radius:12px;border:1.5px dashed var(--accent);background:rgba(59,130,246,0.08);color:var(--accent2);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .btn-add-defect:active{transform:scale(0.98);}
+  .defect-item-card{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:15px;margin-bottom:14px;position:relative;}
+  .defect-item-card .di-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .defect-item-card .di-num{font-size:13px;font-weight:800;color:var(--accent2);}
+  .defect-item-card .di-remove{background:rgba(239,68,68,0.15);color:var(--open);border:none;border-radius:8px;width:30px;height:30px;font-size:15px;cursor:pointer;}
+  .di-sub-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0;}
+  .di-photo-mini{border:1.5px dashed var(--line2);border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;background:var(--bg2);transition:all .15s;}
+  .di-photo-mini:active{transform:scale(0.95);}
+  .di-photo-mini.has{border-style:solid;border-color:var(--accent);}
+  .di-photo-mini .dpm-ic{font-size:18px;}
+  .di-photo-mini .dpm-tx{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-top:3px;}
+  .di-photo-mini .dpm-cnt{font-size:10px;font-weight:800;color:var(--accent2);margin-top:2px;}
+  .room-type-badge{font-size:11px;color:var(--accent2);font-weight:600;margin-top:-12px;margin-bottom:16px;display:none;}
+  .loading-overlay{position:fixed;inset:0;z-index:700;background:rgba(13,21,32,0.7);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+  .loading-overlay.show{display:flex;}
+  .spinner{width:44px;height:44px;border:4px solid var(--line2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-overlay .ltext{color:var(--muted);font-size:13px;font-weight:600;}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="logo-circ" style="background:white;padding:8px;"><img src="data:image/png;base64,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" alt="Verse Lite" style="width:100%;height:100%;object-fit:contain;"></div>
+  <h1>Defect Follow Up</h1>
+  <p>Verse Lite Gajah Mada</p>
+  <div class="lcard">
+    <div class="err" id="loginErr"></div>
+    <input type="email" id="loginEmail" placeholder="Masukkan email Anda" autocomplete="email">
+    <button onclick="doLogin()">Masuk →</button>
+    <div class="hint">Hanya email terdaftar yang dapat mengakses. Hubungi COO untuk pendaftaran.</div>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+  <div class="topbar">
+    <div class="brand">
+      <div class="ic" style="background:white;padding:4px;"><img src="data:image/png;base64,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" alt="Verse Lite" style="width:100%;height:100%;object-fit:contain;"></div>
+      <div class="tt">
+        <h1>Defect Tracker</h1>
+        <div class="hotel">Verse Lite Gajah Mada</div>
+      </div>
+    </div>
+    <div class="acts">
+      <span class="role-pill" id="rolePill">—</span>
+      <button class="icon-btn" onclick="loadDefects(true)" title="Refresh">↻</button>
+      <button class="icon-btn" onclick="waRecap()" title="WhatsApp Recap">💬</button>
+      <button class="icon-btn" id="logBtnTop" onclick="openLogModal()" title="Log Activity" style="display:none;">📜</button>
+      <button class="icon-btn" id="userBtnTop" onclick="openUserMgmt()" title="Manage User" style="display:none;">👥</button>
+      <button class="icon-btn" onclick="doLogout()" title="Logout">⏏</button>
+    </div>
+  </div>
+  <div class="container">
+    <!-- Tab Switcher -->
+    <div class="tab-switch">
+      <button class="tab-btn active" data-tab="defects" onclick="switchTab('defects')">📋 Laporan</button>
+      <button class="tab-btn" data-tab="rooms" onclick="switchTab('rooms')">🛏️ Defect Room</button>
+      <button class="tab-btn" data-tab="public" onclick="switchTab('public')">🏛️ Defect Public Area</button>
+    </div>
+
+    <!-- TAB 1: Defect List (existing) -->
+    <div id="viewDefects">
+      <div class="stats" id="stats">
+        <div class="stat s-open" data-f="Open" onclick="toggleFilter('Open')"><div class="n" id="cOpen">0</div><div class="l">Open</div></div>
+        <div class="stat s-prog" data-f="In Progress" onclick="toggleFilter('In Progress')"><div class="n" id="cProg">0</div><div class="l">Progress</div></div>
+        <div class="stat s-pend" data-f="Pending" onclick="toggleFilter('Pending')"><div class="n" id="cPend">0</div><div class="l">Pending</div></div>
+        <div class="stat s-done" data-f="Done" onclick="toggleFilter('Done')"><div class="n" id="cDone">0</div><div class="l">Done</div></div>
+      </div>
+      <div class="search-wrap">
+        <span class="search-ic">🔍</span>
+        <input type="text" id="searchBox" class="search-inp" placeholder="Cari nomor kamar, area, atau keterangan defect..." oninput="onSearchInput()">
+        <button class="search-clear" id="searchClear" onclick="clearSearch()" style="display:none;">✕</button>
+      </div>
+      <div class="filters" id="catFilters">
+        <button class="chip active" data-cat="all" onclick="setCatFilter('all')">Semua Divisi</button>
+        <button class="chip" data-cat="HK" onclick="setCatFilter('HK')">🧹 Housekeeping</button>
+        <button class="chip" data-cat="ENG" onclick="setCatFilter('ENG')">🔧 Engineering</button>
+      </div>
+      <div class="defect-list" id="defectList"></div>
+    </div>
+
+    <!-- TAB 2: Kondisi Kamar (rooms grid) -->
+    <div id="viewRooms" style="display:none;">
+      <div class="rooms-summary" id="roomsSummary"></div>
+      <div class="rooms-legend">
+        <span><i class="rdot r-clean"></i> No Defect List</span>
+        <span><i class="rdot r-open"></i> Open</span>
+        <span><i class="rdot r-prog"></i> Progress</span>
+        <span><i class="rdot r-pend"></i> Pending</span>
+        <span><i class="rdot r-done"></i> Selesai</span>
+      </div>
+      <div class="rooms-floors" id="roomsFloors"></div>
+    </div>
+
+    <!-- TAB 3: Defect Public Area -->
+    <div id="viewPublic" style="display:none;">
+      <div class="rooms-summary" id="publicSummary"></div>
+      <div class="rooms-legend">
+        <span><i class="rdot r-clean"></i> No Defect List</span>
+        <span><i class="rdot r-open"></i> Open</span>
+        <span><i class="rdot r-prog"></i> Progress</span>
+        <span><i class="rdot r-pend"></i> Pending</span>
+        <span><i class="rdot r-done"></i> Selesai</span>
+      </div>
+      <div id="publicList" class="subarea-list"></div>
+    </div>
+
+<!-- Verse Lite tidak punya F&B -->
+  </div>
+  <button class="fab" id="fab" onclick="openForm()">+</button>
+</div>
+
+<!-- Room History Modal -->
+<div class="modal-bg" id="roomHistoryModal" onclick="if(event.target===this)closeRoomHistory()">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head">
+      <h2 id="roomHistTitle">History Kamar</h2>
+      <button class="icon-btn" onclick="closeRoomHistory()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="upd-info" id="roomHistInfo"></div>
+      <div class="rooms-summary" id="roomHistStats" style="margin-bottom:14px;"></div>
+      <div id="roomHistList"></div>
+      <button class="btn-primary" id="roomHistNewBtn" onclick="createDefectForRoom()" style="margin-top:14px;">+ Tambah Defect untuk Kamar Ini</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="formModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="formTitle">Defect Baru</h2>
+      <button class="icon-btn" onclick="closeForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId">
+      <input type="hidden" id="reportId">
+
+      <!-- HEADER: per-area (1x) -->
+      <div class="form-section-title">📋 Informasi Area</div>
+      <label class="fld">Area</label>
+      <div class="seg" id="segArea" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="seg-opt" data-g="area" data-v="Room" onclick="pickSeg(this);onAreaChange()">🛏️ Room</div>
+        <div class="seg-opt" data-g="area" data-v="Public Area" onclick="pickSeg(this);onAreaChange()">🏛️ Public Area</div>
+        <div class="seg-opt" data-g="area" data-v="Other" onclick="pickSeg(this);onAreaChange()">📦 Other</div>
+      </div>
+      <label class="fld">Lokasi Spesifik</label>
+      <select class="inp" id="fRoomSelect" style="display:none;" onchange="onRoomSelect()"><option value="">— Pilih No. Kamar —</option></select>
+      <select class="inp" id="fSubAreaSelect" style="display:none;" onchange="onSubAreaSelect()"><option value="">— Pilih Sub-Area —</option></select>
+      <div class="room-type-badge" id="roomTypeBadge"></div>
+      <input type="text" class="inp" id="fLocation" placeholder="Keterangan tambahan (mis: dekat tangga darurat)...">
+      <div class="row2">
+        <div><label class="fld">PIC Area</label><input type="text" class="inp" id="fPic" placeholder="Penanggung jawab area"></div>
+        <div><label class="fld">Tgl Lapor</label><input type="date" class="inp" id="fDateReport"></div>
+      </div>
+
+      <!-- DAFTAR DEFECT (multi) -->
+      <div class="form-section-title">🔧 Daftar Defect <span id="defectCounter" class="opt-tag"></span></div>
+      <div id="defectItems"></div>
+      <button class="btn-add-defect" onclick="addDefectItem()">＋ Tambah Defect</button>
+
+      <button class="btn-primary" id="saveBtn" onclick="saveDefect()" style="margin-top:18px;">💾 Simpan Laporan</button>
+      <button class="btn-ghost" onclick="closeForm()">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Update Defect Modal (1 defect: status + foto progress/after) -->
+<div class="modal-bg" id="updateModal">
+  <div class="modal">
+    <div class="modal-head"><h2 id="updTitle">Update Defect</h2><button class="icon-btn" onclick="closeUpdate()">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="updDefectId">
+      <div class="upd-info" id="updInfo"></div>
+
+      <label class="fld">Status</label>
+      <div class="seg cols4" id="updSegStatus" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="seg-opt" data-g="ustatus" data-v="In Progress" onclick="updPickStatus(this)">In Progress</div>
+        <div class="seg-opt" data-g="ustatus" data-v="Pending" onclick="updPickStatus(this)">Pending</div>
+        <div class="seg-opt" data-g="ustatus" data-v="Done" onclick="updPickStatus(this)">Done</div>
+      </div>
+      <div id="updPendingWrap" style="display:none;">
+        <label class="fld">Keterangan / Alasan Pending <span style="color:var(--open);">*wajib</span></label>
+        <textarea class="inp" id="updPendingReason" placeholder="Contoh: Tim overload, menunggu sparepart..."></textarea>
+      </div>
+
+      <div id="updTargetWrap" style="display:none;">
+        <label class="fld">Target Selesai <span style="color:var(--open);">*wajib</span></label>
+        <input type="date" class="inp" id="updTarget">
+      </div>
+
+      <div id="updProgressWrap" style="display:none;">
+        <label class="fld">🔧 Foto Progress <span class="stage-count" id="updCountProgress" style="float:right;">0/10</span></label>
+        <div class="photo-grid" id="updGridProgress"></div>
+        <input id="updFileProgress" type="file" accept="image/*" multiple onchange="updHandlePhoto(this,'progress')" style="display:none;">
+      </div>
+
+      <div id="updAfterWrap" style="display:none;">
+        <label class="fld" style="margin-top:18px;">✅ Foto After <span class="stage-count" id="updCountAfter" style="float:right;">0/10</span></label>
+        <div class="photo-grid" id="updGridAfter"></div>
+        <input id="updFileAfter" type="file" accept="image/*" multiple onchange="updHandlePhoto(this,'after')" style="display:none;">
+      </div>
+
+      <div id="updDoneByWrap" style="display:none;margin-top:18px;">
+        <label class="fld">Penanggung Jawab Penyelesaian <span style="color:var(--open);">*wajib</span></label>
+        <input type="text" class="inp" id="updDoneBy" placeholder="Nama yang menyelesaikan (ENG/HK)">
+      </div>
+
+      <div id="updDoneInfo" style="display:none;margin-top:14px;" class="done-banner">🟢 Tanggal selesai otomatis terisi tanggal hari ini saat disimpan.</div>
+
+      <button class="btn-primary" id="updSaveBtn" onclick="saveUpdate()" style="margin-top:18px;">💾 Simpan Update</button>
+      <button class="btn-ghost" onclick="closeUpdate()">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Log Activity Modal (Admin only) -->
+<div class="modal-bg" id="logModal" onclick="if(event.target===this)closeLogModal()">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head">
+      <h2>📜 Log Activity</h2>
+      <button class="icon-btn" onclick="closeLogModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="log-filters">
+        <select class="inp" id="logFilterAction" onchange="renderLogs()" style="margin-bottom:10px;">
+          <option value="">Semua Aksi</option>
+          <option value="login">🔑 Login</option>
+          <option value="create">➕ Buat Defect</option>
+          <option value="update_status">🔄 Update Status</option>
+          <option value="upload_photo">📷 Upload Foto</option>
+          <option value="edit">✏️ Edit</option>
+          <option value="delete">🗑️ Hapus</option>
+        </select>
+        <select class="inp" id="logFilterUser" onchange="renderLogs()" style="margin-bottom:10px;">
+          <option value="">Semua User</option>
+        </select>
+        <select class="inp" id="logFilterDays" onchange="loadLogs()" style="margin-bottom:14px;">
+          <option value="7">7 hari terakhir</option>
+          <option value="30" selected>30 hari terakhir</option>
+          <option value="90">90 hari terakhir</option>
+        </select>
+      </div>
+      <div class="log-summary" id="logSummary"></div>
+      <div id="logList" class="log-list"></div>
+      <button class="btn-ghost" onclick="cleanupLogs()" style="margin-top:14px;">🧹 Hapus log >90 hari sekarang</button>
+    </div>
+  </div>
+</div>
+
+<!-- History per-Defect Modal (Admin only) -->
+<div class="modal-bg" id="historyModal" onclick="if(event.target===this)closeHistoryModal()">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-head">
+      <h2>📜 History Defect</h2>
+      <button class="icon-btn" onclick="closeHistoryModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="upd-info" id="historyInfo"></div>
+      <div id="historyList" class="log-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- User Management Modal (Admin only) -->
+<div class="modal-bg" id="userMgmtModal" onclick="if(event.target===this)closeUserMgmt()">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head">
+      <h2>👥 Manage User</h2>
+      <button class="icon-btn" onclick="closeUserMgmt()">✕</button>
+    </div>
+    <div class="modal-body">
+      <button class="btn-primary" onclick="openUserForm()" style="margin-bottom:14px;">+ Tambah User</button>
+      <div id="userList" class="log-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- User Form Modal (Tambah/Edit) -->
+<div class="modal-bg" id="userFormModal" onclick="if(event.target===this)closeUserForm()">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <h2 id="userFormTitle">Tambah User</h2>
+      <button class="icon-btn" onclick="closeUserForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="userOriginalEmail">
+      <label class="fld">Email</label>
+      <input type="email" class="inp" id="ufEmail" placeholder="email@versehotels.com" autocomplete="off">
+      <label class="fld">Nama</label>
+      <input type="text" class="inp" id="ufName" placeholder="Nama lengkap user">
+      <label class="fld">Role</label>
+      <div class="seg" id="ufSegRole" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="seg-opt" data-g="urole" data-v="admin" onclick="ufPick(this)">👑 Admin</div>
+        <div class="seg-opt" data-g="urole" data-v="editor" onclick="ufPick(this)">✏️ Editor</div>
+        <div class="seg-opt" data-g="urole" data-v="viewer" onclick="ufPick(this)">👁️ Viewer</div>
+      </div>
+      <label class="fld">Divisi</label>
+      <div class="seg" id="ufSegDivision" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="seg-opt" data-g="udiv" data-v="ALL" onclick="ufPick(this)">🌐 ALL</div>
+        <div class="seg-opt" data-g="udiv" data-v="HK" onclick="ufPick(this)">🧹 HK</div>
+        <div class="seg-opt" data-g="udiv" data-v="ENG" onclick="ufPick(this)">🔧 ENG</div>
+      </div>
+      <div class="hint-txt" style="margin-bottom:14px;">
+        <b>Role:</b> Admin = COO (akses penuh + hapus). Editor = bisa CRUD defect. Viewer = lihat saja.<br>
+        <b>Divisi:</b> ALL = bebas semua kategori. HK = hanya Housekeeping. ENG = hanya Engineering.
+      </div>
+      <button class="btn-primary" id="ufSaveBtn" onclick="saveUser()">💾 Simpan</button>
+      <button class="btn-ghost" onclick="closeUserForm()">Batal</button>
+    </div>
+  </div>
+</div>
+
+<div class="viewer" id="viewer" onclick="closeViewer()">
+  <button class="vclose" onclick="closeViewer()">✕</button>
+  <button class="gal-nav" id="galPrev" onclick="galleryNav(event,-1)" style="left:14px;">‹</button>
+  <img id="viewerImg" src="" alt="" onclick="event.stopPropagation()">
+  <button class="gal-nav" id="galNext" onclick="galleryNav(event,1)" style="right:14px;">›</button>
+  <div class="vlabel" id="viewerLabel"></div>
+</div>
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div class="ltext" id="loadingText">Memuat...</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPA_URL = 'https://hgbqecsmhrzlavsjwlwq.supabase.co';
+const SUPA_KEY = 'sb_publishable_KeAmOu9ex8r1PDRI1MRMsQ_40uiEkbM';
+const BUCKET = 'defect-photos';
+const HOTEL = 'Verse Lite Gajah Mada';
+const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY, { auth:{persistSession:false,autoRefreshToken:false} });
+
+// Data 120 kamar Verse Luxe (dari Excel)
+const ROOMS = [{r:"501",t:"SUI"},{r:"503",t:"SUI"},{r:"504",t:"DLX"},{r:"505",t:"SUI"},{r:"506",t:"SPR"},{r:"507",t:"SUI"},{r:"508",t:"DLX"},{r:"509",t:"SUI"},{r:"510",t:"DLX"},{r:"511",t:"EXEJ"},{r:"515",t:"SPR"},{r:"516",t:"DLX"},{r:"517",t:"SPR"},{r:"518",t:"SPR"},{r:"519",t:"SPR"},{r:"520",t:"DLX"},{r:"521",t:"DLX"},{r:"522",t:"DLX"},{r:"523",t:"DLX"},{r:"601",t:"SUI"},{r:"603",t:"SUI"},{r:"604",t:"DLX"},{r:"605",t:"SUI"},{r:"606",t:"SPR"},{r:"607",t:"SUI"},{r:"608",t:"DLX"},{r:"609",t:"SUI"},{r:"610",t:"DLX"},{r:"611",t:"EXEJ"},{r:"615",t:"SPR"},{r:"616",t:"DLX"},{r:"617",t:"SPR"},{r:"618",t:"SPR"},{r:"619",t:"SPR"},{r:"620",t:"DLX"},{r:"621",t:"DLX"},{r:"622",t:"DLX"},{r:"623",t:"DLX"},{r:"701",t:"SUI"},{r:"703",t:"SUI"},{r:"704",t:"DLX"},{r:"705",t:"SUI"},{r:"706",t:"SPR"},{r:"707",t:"SUI"},{r:"708",t:"DLX"},{r:"709",t:"SUI"},{r:"710",t:"DLX"},{r:"711",t:"EXEJ"},{r:"715",t:"SPR"},{r:"716",t:"DLX"},{r:"717",t:"SPR"},{r:"718",t:"SPR"},{r:"719",t:"SPR"},{r:"720",t:"DLX"},{r:"721",t:"DLX"},{r:"722",t:"DLX"},{r:"723",t:"DLX"},{r:"801",t:"SUI"},{r:"803",t:"SUI"},{r:"804",t:"DLX"},{r:"805",t:"SUI"},{r:"806",t:"SPR"},{r:"807",t:"SUI"},{r:"808",t:"DLX"},{r:"809",t:"SUI"},{r:"810",t:"DLX"},{r:"811",t:"EXEJ"},{r:"815",t:"SPR"},{r:"816",t:"DLX"},{r:"817",t:"SPR"},{r:"818",t:"SPR"},{r:"819",t:"SPR"},{r:"820",t:"DLX"},{r:"821",t:"DLX"},{r:"822",t:"DLX"},{r:"823",t:"DLX"},{r:"901",t:"SUI"},{r:"903",t:"SUI"},{r:"904",t:"DLX"},{r:"905",t:"SUI"},{r:"906",t:"SPR"},{r:"907",t:"SUI"},{r:"908",t:"DLX"},{r:"909",t:"SUI"},{r:"910",t:"DLX"},{r:"911",t:"EXEJ"},{r:"915",t:"SPR"},{r:"916",t:"DLX"},{r:"917",t:"SPR"},{r:"918",t:"SPR"},{r:"919",t:"SPR"},{r:"920",t:"DLX"},{r:"921",t:"DLX"},{r:"922",t:"DLX"},{r:"923",t:"DLX"}];
+const TYPE_NAMES = {'SUI':'Suite','DLX':'Deluxe','SPR':'Superior','EXEJ':'Executive Junior'};
+
+// Sub-area Public Area & F&B (urut sesuai permintaan)
+const PUBLIC_AREAS = [
+  'Parkiran','Outdoor Resto','Indoor Resto','Area Kitchen Depan','Area Kitchen Belakang',
+  'Front Office','Lobby Area','Guest Toilet Male Lobby','Guest Toilet Female Lobby',
+  'Meeting Room','Employee Toilet Male','Employee Toilet Female','Employee Back Area',
+  'Workshop Engineering','Genset Area',
+  'Floor 5','Floor 6','Floor 7','Floor 8','Floor 9','Roof Top'
+];
+const FB_AREAS = []; // Verse Lite tidak punya kategori F&B terpisah
+
+let defects = [];
+let currentArea = 'all';
+let currentCat = 'all';
+let currentStatusFilter = null;
+let currentSearch = '';
+let formDefects = []; // working list of defect items in the form
+// each item: {key, category, description, priority, status, dateTarget, pendingReason,
+//             progressNote, afterNote, photos:{defect:[],progress:[],after:[]}, existingId}
+const MAX_PHOTOS = 10;
+let currentUser = null;
+
+const areaIcon = {'Room':'🛏️','Public Area':'🏛️','F&B':'🍽️','Other':'📦'};
+const statusClass = {'Open':'b-open','In Progress':'b-prog','Pending':'b-pend','Done':'b-done'};
+const statusShort = {'Open':'Open','In Progress':'Progress','Pending':'Pending','Done':'Done'};
+const prioClass = {'Low':'p-low','Medium':'p-med','High':'p-high','Urgent':'p-urgent'};
+
+function canEdit(){ return currentUser && (currentUser.role==='admin' || currentUser.role==='editor'); }
+
+// Divisi user → menentukan kategori defect mana yang boleh di-UPDATE.
+// Email EHK → HK; email CE → ENG; sisanya (admin/HM/FBM) → ALL.
+// Divisi user diambil dari database (kolom division di defect_users).
+// HK = hanya defect Housekeeping; ENG = hanya Engineering; ALL = semua.
+function userDivision(){
+  if(!currentUser) return null;
+  // Utamakan nilai dari database
+  if(currentUser.division && ['HK','ENG','ALL'].includes(currentUser.division)) return currentUser.division;
+  // Fallback (kalau kolom division belum di-set): tebak dari email
+  const e = (currentUser.email||'').toLowerCase();
+  if(e.includes('ehk')) return 'HK';
+  if(e.includes('ce.')||e.startsWith('ce')) return 'ENG';
+  return 'ALL';
+}
+// Boleh update/ubah status defect kategori tertentu?
+function canEditCategory(cat){
+  if(!canEdit()) return false;
+  const div = userDivision();
+  if(div==='ALL') return true;
+  return div === cat; // EHK hanya HK, CE hanya ENG
+}
+
+// ===== ACTIVITY LOGGING =====
+// Catat aksi penting. Fire-and-forget (tidak block UI kalau gagal).
+async function logActivity(action, opts){
+  if(!currentUser) return;
+  try{
+    await supa.from('activity_logs').insert({
+      user_email: currentUser.email,
+      user_role: currentUser.role,
+      action,
+      defect_id: opts?.defectId || null,
+      report_id: opts?.reportId || null,
+      hotel: HOTEL,
+      detail: opts?.detail || null,
+      meta: opts?.meta || null
+    });
+  }catch(e){ console.warn('Log gagal:', e); }
+}
+
+// ===== LOG ACTIVITY MODAL (admin) =====
+let logsCache=[];
+function openLogModal(){
+  if(currentUser?.role!=='admin'){ showToast('⛔ Hanya COO yang dapat melihat Log'); return; }
+  document.getElementById('logModal').classList.add('show');
+  loadLogs();
+}
+function closeLogModal(){ document.getElementById('logModal').classList.remove('show'); }
+async function loadLogs(){
+  showLoading('Memuat log...');
+  try{
+    const days=parseInt(document.getElementById('logFilterDays').value||'30',10);
+    const sinceIso=new Date(Date.now()-days*86400000).toISOString();
+    const {data,error}=await supa.from('activity_logs').select('*').eq('hotel',HOTEL).gte('created_at',sinceIso).order('created_at',{ascending:false}).limit(1000);
+    hideLoading();
+    if(error) throw new Error(error.message);
+    logsCache=data||[];
+    // populate user filter
+    const users=[...new Set(logsCache.map(l=>l.user_email))].sort();
+    const sel=document.getElementById('logFilterUser');
+    const cur=sel.value;
+    sel.innerHTML='<option value="">Semua User</option>'+users.map(u=>`<option value="${u}"${u===cur?' selected':''}>${u}</option>`).join('');
+    renderLogs();
+  }catch(e){ hideLoading(); showToast('Gagal memuat log: '+e.message); }
+}
+const ACT_ICON={login:'🔑',create:'➕',update_status:'🔄',upload_photo:'📷',edit:'✏️',delete:'🗑️'};
+const ACT_NAME={login:'Login',create:'Buat Defect',update_status:'Update Status',upload_photo:'Upload Foto',edit:'Edit Defect',delete:'Hapus Defect'};
+function renderLogs(){
+  const actFilter=document.getElementById('logFilterAction').value;
+  const userFilter=document.getElementById('logFilterUser').value;
+  let list=logsCache;
+  if(actFilter) list=list.filter(l=>l.action===actFilter);
+  if(userFilter) list=list.filter(l=>l.user_email===userFilter);
+  document.getElementById('logSummary').textContent='📊 '+list.length+' aktivitas ditampilkan (dari '+logsCache.length+' total)';
+  const cont=document.getElementById('logList');
+  if(list.length===0){ cont.innerHTML='<div class="log-empty">Tidak ada aktivitas</div>'; return; }
+  cont.innerHTML=list.map(l=>`<div class="log-item">
+    <span class="log-ic">${ACT_ICON[l.action]||'•'}</span>
+    <div class="log-body">
+      <div><span class="log-user">${esc(l.user_email)}</span> · <span class="log-act">${ACT_NAME[l.action]||l.action}</span></div>
+      ${l.detail?`<div class="log-det">${esc(l.detail)}</div>`:''}
+    </div>
+    <div class="log-time">${fmtLogTime(l.created_at)}</div>
+  </div>`).join('');
+}
+function fmtLogTime(iso){
+  const d=new Date(iso);
+  const now=new Date();
+  const sameDay = d.toDateString()===now.toDateString();
+  if(sameDay) return d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString('id-ID',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+async function cleanupLogs(){
+  if(!confirm('Hapus semua log lebih dari 90 hari? Tidak bisa di-undo.')) return;
+  showLoading('Membersihkan log lama...');
+  try{
+    const cutoff=new Date(Date.now()-90*86400000).toISOString();
+    const {error}=await supa.from('activity_logs').delete().lt('created_at',cutoff);
+    hideLoading();
+    if(error) throw new Error(error.message);
+    showToast('✅ Log lama dibersihkan');
+    loadLogs();
+  }catch(e){ hideLoading(); showToast('Gagal: '+e.message); }
+}
+
+// ===== HISTORY per defect =====
+async function openHistory(defectId){
+  if(currentUser?.role!=='admin'){ showToast('⛔ Hanya COO yang dapat melihat History'); return; }
+  const d=defects.find(x=>x.id===defectId);
+  document.getElementById('historyInfo').innerHTML=d?`<div class="ui-loc">📍 ${esc(d.location)}</div><div class="ui-desc">${esc(d.description)}</div>`:'';
+  document.getElementById('historyModal').classList.add('show');
+  document.getElementById('historyList').innerHTML='<div class="log-empty">Memuat...</div>';
+  try{
+    const {data,error}=await supa.from('activity_logs').select('*').eq('defect_id',defectId).order('created_at',{ascending:false}).limit(200);
+    if(error) throw new Error(error.message);
+    const list=data||[];
+    const cont=document.getElementById('historyList');
+    if(list.length===0){ cont.innerHTML='<div class="log-empty">Belum ada aktivitas tercatat untuk defect ini</div>'; return; }
+    cont.innerHTML=list.map(l=>`<div class="log-item">
+      <span class="log-ic">${ACT_ICON[l.action]||'•'}</span>
+      <div class="log-body">
+        <div><span class="log-user">${esc(l.user_email)}</span> · <span class="log-act">${ACT_NAME[l.action]||l.action}</span></div>
+        ${l.detail?`<div class="log-det">${esc(l.detail)}</div>`:''}
+      </div>
+      <div class="log-time">${fmtLogTime(l.created_at)}</div>
+    </div>`).join('');
+  }catch(e){ document.getElementById('historyList').innerHTML='<div class="log-empty">Gagal: '+esc(e.message)+'</div>'; }
+}
+function closeHistoryModal(){ document.getElementById('historyModal').classList.remove('show'); }
+
+// ===== USER MANAGEMENT (admin only) =====
+let usersCache=[];
+function openUserMgmt(){
+  if(currentUser?.role!=='admin'){ showToast('⛔ Hanya COO yang dapat mengelola user'); return; }
+  document.getElementById('userMgmtModal').classList.add('show');
+  loadUsers();
+}
+function closeUserMgmt(){ document.getElementById('userMgmtModal').classList.remove('show'); }
+
+async function loadUsers(){
+  showLoading('Memuat daftar user...');
+  try{
+    const {data,error}=await supa.from('defect_users').select('email,name,role,division').order('role',{ascending:true}).order('email',{ascending:true});
+    hideLoading();
+    if(error) throw new Error(error.message);
+    usersCache=data||[];
+    renderUsers();
+  }catch(e){ hideLoading(); showToast('Gagal memuat: '+e.message); }
+}
+function renderUsers(){
+  const cont=document.getElementById('userList');
+  if(usersCache.length===0){ cont.innerHTML='<div class="log-empty">Belum ada user</div>'; return; }
+  cont.innerHTML=usersCache.map(u=>{
+    const div=u.division||'ALL';
+    const roleClass={admin:'t-admin',editor:'t-editor',viewer:'t-viewer'}[u.role]||'t-editor';
+    const divClass={ALL:'t-all',HK:'t-hk',ENG:'t-eng'}[div]||'t-all';
+    const divIcon={ALL:'🌐',HK:'🧹',ENG:'🔧'}[div]||'🌐';
+    return `<div class="user-item">
+      <div class="ui-body">
+        <div class="ui-email">${esc(u.email)}</div>
+        ${u.name?`<div class="ui-name">${esc(u.name)}</div>`:''}
+        <div class="ui-tags">
+          <span class="ui-tag ${roleClass}">${u.role||'editor'}</span>
+          <span class="ui-tag ${divClass}">${divIcon} ${div}</span>
+        </div>
+      </div>
+      <div class="ui-acts">
+        <button class="ui-btn" onclick='editUser(${JSON.stringify(u.email).replace(/'/g,"\\'")})' title="Edit">✏️</button>
+        <button class="ui-btn danger" onclick='deleteUser(${JSON.stringify(u.email).replace(/'/g,"\\'")})' title="Hapus">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openUserForm(){
+  document.getElementById('userFormTitle').textContent='Tambah User';
+  document.getElementById('userOriginalEmail').value='';
+  document.getElementById('ufEmail').value='';
+  document.getElementById('ufEmail').disabled=false;
+  document.getElementById('ufName').value='';
+  document.querySelectorAll('#ufSegRole .seg-opt, #ufSegDivision .seg-opt').forEach(o=>o.classList.remove('active'));
+  // Default: editor + ALL
+  document.querySelector('#ufSegRole .seg-opt[data-v="editor"]').classList.add('active');
+  document.querySelector('#ufSegDivision .seg-opt[data-v="ALL"]').classList.add('active');
+  document.getElementById('userFormModal').classList.add('show');
+}
+function closeUserForm(){ document.getElementById('userFormModal').classList.remove('show'); }
+function ufPick(el){
+  const g=el.dataset.g;
+  document.querySelectorAll(`.seg-opt[data-g="${g}"]`).forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+}
+function editUser(email){
+  const u=usersCache.find(x=>x.email===email); if(!u) return;
+  document.getElementById('userFormTitle').textContent='Edit User';
+  document.getElementById('userOriginalEmail').value=u.email;
+  document.getElementById('ufEmail').value=u.email;
+  document.getElementById('ufEmail').disabled=true; // email tidak boleh diubah (primary key)
+  document.getElementById('ufName').value=u.name||'';
+  document.querySelectorAll('#ufSegRole .seg-opt, #ufSegDivision .seg-opt').forEach(o=>o.classList.remove('active'));
+  const r=u.role||'editor';
+  const d=u.division||'ALL';
+  document.querySelector(`#ufSegRole .seg-opt[data-v="${r}"]`)?.classList.add('active');
+  document.querySelector(`#ufSegDivision .seg-opt[data-v="${d}"]`)?.classList.add('active');
+  document.getElementById('userFormModal').classList.add('show');
+}
+
+async function saveUser(){
+  const originalEmail=document.getElementById('userOriginalEmail').value;
+  const email=document.getElementById('ufEmail').value.trim().toLowerCase();
+  const name=document.getElementById('ufName').value.trim();
+  const role=document.querySelector('#ufSegRole .seg-opt.active')?.dataset.v;
+  const division=document.querySelector('#ufSegDivision .seg-opt.active')?.dataset.v;
+  if(!email){ showToast('Email wajib diisi'); return; }
+  if(!email.includes('@')){ showToast('Email tidak valid'); return; }
+  if(!role){ showToast('Pilih role dulu'); return; }
+  if(!division){ showToast('Pilih divisi dulu'); return; }
+  // Cegah admin menghilangkan dirinya sendiri jadi non-admin (lockout)
+  if(originalEmail===currentUser.email && role!=='admin'){
+    if(!confirm('⚠️ Anda mengubah role diri sendiri jadi '+role.toUpperCase()+'.\nSetelah disimpan, Anda tidak akan bisa mengelola user lagi.\nLanjut?')) return;
+  }
+  document.getElementById('ufSaveBtn').disabled=true;
+  showLoading('Menyimpan user...');
+  try{
+    if(originalEmail && originalEmail!==email){
+      // Email tidak bisa diubah (disabled di form), tapi kalau somehow berubah, tolak
+      throw new Error('Email tidak bisa diubah. Hapus user lalu tambah baru.');
+    }
+    const row={email, name:name||null, role, division};
+    const {error}=await supa.from('defect_users').upsert(row);
+    if(error) throw new Error(error.message);
+    hideLoading();
+    document.getElementById('ufSaveBtn').disabled=false;
+    closeUserForm();
+    showToast(originalEmail?'✅ User diperbarui':'✅ User ditambahkan');
+    await loadUsers();
+  }catch(e){
+    hideLoading();
+    document.getElementById('ufSaveBtn').disabled=false;
+    showToast('Gagal: '+e.message);
+  }
+}
+
+async function deleteUser(email){
+  if(email===currentUser.email){ showToast('⛔ Tidak bisa hapus akun Anda sendiri'); return; }
+  if(!confirm('Hapus user "'+email+'"?\nUser ini tidak akan bisa login lagi.')) return;
+  showLoading('Menghapus user...');
+  try{
+    const {error}=await supa.from('defect_users').delete().eq('email',email);
+    if(error) throw new Error(error.message);
+    hideLoading();
+    showToast('🗑️ User dihapus');
+    await loadUsers();
+  }catch(e){ hideLoading(); showToast('Gagal: '+e.message); }
+}
+
+
+// ===== ROOM DROPDOWN =====
+function buildRoomDropdown(){
+  const sel = document.getElementById('fRoomSelect');
+  sel.innerHTML = '<option value="">— Pilih No. Kamar —</option>' +
+    ROOMS.map(r=>`<option value="${r.r}" data-type="${r.t}">Kamar ${r.r} — ${TYPE_NAMES[r.t]||r.t}</option>`).join('');
+}
+function onAreaChange(){
+  const area = getSeg('area');
+  const roomSel = document.getElementById('fRoomSelect');
+  const subSel = document.getElementById('fSubAreaSelect');
+  const inp = document.getElementById('fLocation');
+  const badge = document.getElementById('roomTypeBadge');
+  // Reset semua
+  roomSel.style.display='none';
+  subSel.style.display='none';
+  badge.style.display='none';
+  if(area==='Room'){
+    roomSel.style.display='block';
+    inp.style.display='block';
+    inp.placeholder='(Opsional) Tambahan keterangan lokasi...';
+  } else if(area==='Public Area'){
+    buildSubAreaDropdown('Public Area');
+    subSel.style.display='block';
+    inp.style.display='block';
+    inp.placeholder='(Opsional) Tambahan keterangan (mis: dekat tangga darurat)...';
+  } else if(area==='F&B'){
+    buildSubAreaDropdown('F&B');
+    subSel.style.display='block';
+    inp.style.display='block';
+    inp.placeholder='(Opsional) Tambahan keterangan...';
+  } else {
+    // Other
+    inp.style.display='block';
+    inp.placeholder='Sebutkan lokasinya...';
+  }
+}
+function buildSubAreaDropdown(area){
+  const sel = document.getElementById('fSubAreaSelect');
+  const list = area==='Public Area' ? PUBLIC_AREAS : FB_AREAS;
+  sel.innerHTML = '<option value="">— Pilih Sub-Area —</option>' +
+    list.map(a=>`<option value="${a}">${a}</option>`).join('');
+}
+function onSubAreaSelect(){
+  // Tidak auto-isi fLocation — sub-area disimpan terpisah saat save
+  // fLocation hanya untuk keterangan tambahan
+}
+function onRoomSelect(){
+  const sel = document.getElementById('fRoomSelect');
+  const opt = sel.options[sel.selectedIndex];
+  const badge = document.getElementById('roomTypeBadge');
+  if(sel.value){
+    const t = opt.getAttribute('data-type');
+    badge.textContent = '🛏️ Tipe: ' + (TYPE_NAMES[t]||t);
+    badge.style.display='block';
+  } else { badge.style.display='none'; }
+}
+
+// ===== LOGIN =====
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const errEl = document.getElementById('loginErr');
+  errEl.style.display='none';
+  if(!email){ errEl.textContent='Email wajib diisi'; errEl.style.display='block'; return; }
+  showLoading('Memeriksa akses...');
+  try{
+    const {data, error} = await supa.from('defect_users').select('email,role,name,division').eq('email', email).maybeSingle();
+    hideLoading();
+    if(error){ errEl.textContent='Koneksi gagal: '+error.message; errEl.style.display='block'; return; }
+    if(!data){ errEl.textContent='Email tidak terdaftar. Hubungi COO.'; errEl.style.display='block'; return; }
+    currentUser = data;
+    localStorage.setItem('defect_user_email', email);
+    enterApp();
+    logActivity('login', {detail:'Login dari email '+email});
+  }catch(e){ hideLoading(); errEl.textContent='Error: '+e.message; errEl.style.display='block'; }
+}
+function doLogout(){
+  localStorage.removeItem('defect_user_email');
+  currentUser = null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login').style.display='flex';
+  document.getElementById('loginEmail').value='';
+}
+async function enterApp(){
+  document.getElementById('login').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('rolePill').textContent = currentUser.role;
+  document.getElementById('fab').classList.toggle('hidden', !canEdit());
+  document.getElementById('logBtnTop').style.display = currentUser.role==='admin' ? 'flex' : 'none';
+  document.getElementById('userBtnTop').style.display = currentUser.role==='admin' ? 'flex' : 'none';
+  buildRoomDropdown();
+  await loadDefects();
+}
+
+// ===== IMAGE =====
+function compressImage(file, maxKB=150, maxW=1024){
+  return new Promise((resolve)=>{
+    if(!file.type.startsWith('image/')){ resolve(null); return; }
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let {width,height} = img;
+        if(width>maxW){ height=height*maxW/width; width=maxW; }
+        const canvas=document.createElement('canvas');
+        canvas.width=width; canvas.height=height;
+        canvas.getContext('2d').drawImage(img,0,0,width,height);
+        let q=0.85, out=canvas.toDataURL('image/jpeg',q);
+        while(out.length/1024>maxKB && q>0.3){ q-=0.1; out=canvas.toDataURL('image/jpeg',q); }
+        resolve(out);
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function dataUrlToBlob(dataUrl){
+  const [head,b64]=dataUrl.split(',');
+  const mime=head.match(/:(.*?);/)[1];
+  const bin=atob(b64); const arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+// ===== PHOTO HELPERS (per defect item) =====
+async function handlePhoto(input, key, type){
+  const item = formDefects.find(d=>d.key===key); if(!item) return;
+  const files = Array.from(input.files||[]);
+  if(!files.length) return;
+  const room = MAX_PHOTOS - item.photos[type].length;
+  if(room <= 0){ showToast('Maksimal '+MAX_PHOTOS+' foto per tahap'); input.value=''; return; }
+  const toAdd = files.slice(0, room);
+  if(files.length > room) showToast('Hanya '+room+' foto ditambahkan (maks '+MAX_PHOTOS+')');
+  else showToast('Mengompres '+toAdd.length+' foto...');
+  for(const file of toAdd){
+    const compressed = await compressImage(file);
+    if(compressed) item.photos[type].push({dataUrl:compressed, isNew:true});
+  }
+  input.value='';
+  renderDefectItems();
+  openPhotoStage(key, type); // tetap di tahap yang sama
+}
+async function uploadPhoto(defectId, type, dataUrl, seq){
+  const blob=dataUrlToBlob(dataUrl);
+  const path=`${defectId}/${type}_${Date.now()}_${seq}.jpg`;
+  const {error}=await supa.storage.from(BUCKET).upload(path, blob, {contentType:'image/jpeg', upsert:true});
+  if(error) throw new Error('Upload foto gagal: '+error.message);
+  const {data}=supa.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+function parsePhotos(val){
+  if(!val) return [];
+  if(Array.isArray(val)) return val;
+  if(typeof val==='string'){
+    const s=val.trim();
+    if(s.startsWith('[')){ try{ return JSON.parse(s); }catch(e){ return [s]; } }
+    return s ? [s] : [];
+  }
+  return [];
+}
+// Format info pembuat & update terakhir untuk ditampilkan di kartu/history
+function bylineHtml(d){
+  const created = d.created_by ? `<span>📝 Dibuat oleh <b>${esc(d.created_by)}</b>${d.date_report?' · '+fmtDate(d.date_report):''}</span>` : '';
+  // Tampilkan update terakhir kalau ada updated_by DAN berbeda dari created_by atau ada updated_at
+  let updated = '';
+  if(d.updated_by && d.updated_at){
+    // Tampilkan kalau berbeda dari created (kalau sama, asumsikan belum pernah diupdate)
+    const isJustCreated = d.created_by===d.updated_by && (!d.date_report || d.updated_at.slice(0,10)===d.date_report);
+    if(!isJustCreated){
+      updated = `<span>🔄 Update oleh <b>${esc(d.updated_by)}</b> · ${fmtLogTime(d.updated_at)}</span>`;
+    }
+  }
+  if(!created && !updated) return '';
+  return `<div class="byline">${created}${updated}</div>`;
+}
+
+// Render photo strip 3-kolom (Defect/Progress/After) untuk modal history
+function renderPhotoStripFor(d, label){
+  const cell = (val, stageLabel) => {
+    const arr=parsePhotos(val);
+    if(arr.length){
+      const more = arr.length>1 ? `<span class="ph-count">+${arr.length-1}</span>` : '';
+      const ctx = stageLabel+' — '+d.location;
+      return `<div class="ph" onclick="event.stopPropagation();openGallery(${JSON.stringify(arr).replace(/"/g,'&quot;')},0,${JSON.stringify(ctx).replace(/"/g,'&quot;')})"><img src="${arr[0]}" alt="${stageLabel}">${more}<span class="ph-label">${stageLabel}</span></div>`;
+    }
+    return `<div class="ph empty"><span class="ph-icon">📷</span><span class="ph-label">${stageLabel}</span></div>`;
+  };
+  return `<div class="photo-strip" style="padding:8px 0 0;">${cell(d.photo_defect,'Defect')}${cell(d.photo_progress,'Progress')}${cell(d.photo_after,'After')}</div>`;
+}
+
+// ===== SEGMENTED (header area only) =====
+function pickSeg(el){ const g=el.dataset.g; document.querySelectorAll(`.seg-opt[data-g="${g}"]`).forEach(o=>o.classList.remove('active')); el.classList.add('active'); }
+function getSeg(g){ const a=document.querySelector(`.seg-opt[data-g="${g}"].active`); return a?a.dataset.v:''; }
+function setSeg(g,v){ document.querySelectorAll(`.seg-opt[data-g="${g}"]`).forEach(o=>o.classList.toggle('active', o.dataset.v===v)); }
+
+// ===== MULTI-DEFECT ITEMS =====
+let defectKeyCounter = 0;
+function newDefectItem(){
+  const div=userDivision();
+  return {
+    key: 'k'+(++defectKeyCounter),
+    category: div==='ENG'?'ENG':'HK',
+    description:'', priority:'Medium', status:'Open',
+    dateTarget:'', pendingReason:'', progressNote:'', afterNote:'',
+    photos:{defect:[],progress:[],after:[]}, existingId:null
+  };
+}
+function addDefectItem(){
+  formDefects.push(newDefectItem());
+  renderDefectItems();
+  // scroll ke item terakhir
+  setTimeout(()=>{ const items=document.querySelectorAll('.defect-item-card'); if(items.length) items[items.length-1].scrollIntoView({behavior:'smooth',block:'center'}); },100);
+}
+function removeDefectItem(key){
+  if(formDefects.length<=1){ showToast('Minimal 1 defect'); return; }
+  if(!confirm('Hapus item defect ini dari form?')) return;
+  formDefects = formDefects.filter(d=>d.key!==key);
+  renderDefectItems();
+}
+// Update field dari input
+function updField(key, field, val){ const d=formDefects.find(x=>x.key===key); if(d){ d[field]=val; } }
+function pickItemSeg(key, group, val){
+  const d=formDefects.find(x=>x.key===key); if(!d) return;
+  d[group]=val;
+  if(group==='status') renderDefectItems(); // refresh untuk tampilkan/sembunyikan alasan pending
+  else {
+    // update visual saja tanpa re-render penuh (biar tidak kehilangan fokus)
+    document.querySelectorAll(`[data-itemseg="${key}-${group}"] .seg-opt`).forEach(o=>o.classList.toggle('active', o.dataset.v===val));
+  }
+}
+function removeItemPhoto(key, type, idx){ const d=formDefects.find(x=>x.key===key); if(d){ d.photos[type].splice(idx,1); renderDefectItems(); } }
+function openPhotoStage(key, type){ const inp=document.getElementById(`file-${key}-${type}`); if(inp) inp.click(); }
+
+const STAGES=[{t:'defect',ic:'📷',l:'Defect'},{t:'progress',ic:'🔧',l:'Progress'},{t:'after',ic:'✅',l:'After'}];
+function renderDefectItems(){
+  const cont=document.getElementById('defectItems');
+  document.getElementById('defectCounter').textContent = '('+formDefects.length+' defect)';
+  cont.innerHTML = formDefects.map((d,i)=>{
+    const photoStages = STAGES.map(s=>{
+      const arr=d.photos[s.t];
+      const thumbs = arr.map((p,idx)=>`<div class="pg-item"><img src="${p.url||p.dataUrl}" alt=""><button class="pg-rm" type="button" onclick="removeItemPhoto('${d.key}','${s.t}',${idx})">✕</button></div>`).join('');
+      const addBtn = arr.length<MAX_PHOTOS ? `<div class="pg-add" onclick="openPhotoStage('${d.key}','${s.t}')"><span class="pa-ic">＋</span><span class="pa-tx">${s.l}</span></div>` : '';
+      return `<div style="margin-bottom:8px;">
+        <div class="stage-head"><span class="stage-name">${s.ic} ${s.l}</span><span class="stage-count">${arr.length}/${MAX_PHOTOS}</span></div>
+        <div class="photo-grid">${thumbs}${addBtn}</div>
+        <input id="file-${d.key}-${s.t}" type="file" accept="image/*" multiple onchange="handlePhoto(this,'${d.key}','${s.t}')" style="display:none;">
+      </div>`;
+    }).join('');
+    const segHtml=(group,opts)=>`<div class="seg ${opts.length>2?'cols4':''}" data-itemseg="${d.key}-${group}" style="${opts.length===2?'grid-template-columns:1fr 1fr;':''}">`+
+      opts.map(o=>`<div class="seg-opt ${d[group]===o.v?'active':''}" data-v="${o.v}" onclick="pickItemSeg('${d.key}','${group}','${o.v}')">${o.l}</div>`).join('')+`</div>`;
+    return `<div class="defect-item-card">
+      <div class="di-head">
+        <span class="di-num">Defect #${i+1}</span>
+        <button class="di-remove" onclick="removeDefectItem('${d.key}')">🗑️</button>
+      </div>
+      <label class="fld">Kategori Divisi</label>
+      ${segHtml('category',[{v:'HK',l:'🧹 Housekeeping'},{v:'ENG',l:'🔧 Engineering'}])}
+      <label class="fld">Keterangan Defect</label>
+      <textarea class="inp" placeholder="Jelaskan kerusakan..." oninput="updField('${d.key}','description',this.value)">${esc(d.description)}</textarea>
+      <label class="fld">Prioritas</label>
+      ${segHtml('priority',[{v:'Low',l:'Low'},{v:'Medium',l:'Medium'},{v:'High',l:'High'},{v:'Urgent',l:'Urgent'}])}
+      <label class="fld">Dokumentasi Foto <span class="opt-tag">(maks 10/tahap)</span></label>
+      ${photoStages}
+      <label class="fld">Target Selesai <span class="opt-tag">(boleh diisi nanti oleh dept)</span></label>
+      <input type="date" class="inp" value="${d.dateTarget||''}" onchange="updField('${d.key}','dateTarget',this.value)">
+      <label class="fld">Status</label>
+      ${segHtml('status',[{v:'Open',l:'Open'},{v:'In Progress',l:'Progress'},{v:'Pending',l:'Pending'},{v:'Done',l:'Done'}])}
+      ${d.status==='Pending'?`<label class="fld">Alasan Pending <span style="color:var(--open);">*wajib</span></label>
+        <textarea class="inp" placeholder="Contoh: Tim overload, menunggu sparepart..." oninput="updField('${d.key}','pendingReason',this.value)">${esc(d.pendingReason)}</textarea>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ===== FORM =====
+function openForm(){
+  if(!canEdit()){ showToast('Anda hanya memiliki akses lihat'); return; }
+  document.getElementById('formTitle').textContent='Laporan Defect Baru';
+  document.getElementById('editId').value='';
+  document.getElementById('reportId').value='rpt_'+Date.now();
+  document.getElementById('fLocation').value='';
+  document.getElementById('fRoomSelect').value='';
+  document.getElementById('fSubAreaSelect').value='';
+  document.getElementById('roomTypeBadge').style.display='none';
+  document.getElementById('fPic').value='';
+  document.getElementById('fDateReport').value=new Date().toISOString().split('T')[0];
+  document.querySelectorAll('#segArea .seg-opt').forEach(o=>o.classList.remove('active'));
+  setSeg('area','Room');
+  onAreaChange();
+  formDefects=[newDefectItem()]; // mulai dengan 1 defect
+  renderDefectItems();
+  document.getElementById('formModal').classList.add('show');
+}
+function closeForm(){ document.getElementById('formModal').classList.remove('show'); }
+
+async function saveDefect(){
+  if(!canEdit()){ showToast('Tidak ada akses'); return; }
+  const area=getSeg('area');
+  const extraLoc=document.getElementById('fLocation').value.trim();
+  const roomVal=document.getElementById('fRoomSelect').value;
+  const subAreaVal=document.getElementById('fSubAreaSelect').value;
+  // Build location string sesuai area
+  let location='';
+  if(area==='Room'){
+    if(!roomVal){ showToast('Pilih nomor kamar dulu'); return; }
+    location = 'Kamar '+roomVal + (extraLoc?' — '+extraLoc:'');
+  } else if(area==='Public Area' || area==='F&B'){
+    if(!subAreaVal){ showToast('Pilih sub-area dulu'); return; }
+    location = subAreaVal + (extraLoc?' — '+extraLoc:'');
+  } else {
+    if(!extraLoc){ showToast('Lokasi wajib diisi'); return; }
+    location = extraLoc;
+  }
+  const pic=document.getElementById('fPic').value.trim();
+  const dateReport=document.getElementById('fDateReport').value||null;
+  const reportId=document.getElementById('reportId').value;
+  if(!area){ showToast('Pilih area dulu'); return; }
+  if(formDefects.length===0){ showToast('Tambah minimal 1 defect'); return; }
+
+  // Validasi tiap defect item
+  for(let i=0;i<formDefects.length;i++){
+    const d=formDefects[i];
+    if(!d.description.trim()){ showToast('Defect #'+(i+1)+': keterangan wajib diisi'); return; }
+    if(!d.category){ showToast('Defect #'+(i+1)+': pilih kategori HK/ENG'); return; }
+    if(d.status==='Pending' && !d.pendingReason.trim()){ showToast('Defect #'+(i+1)+': alasan Pending wajib diisi'); return; }
+    // Cek izin kategori saat EDIT defect existing
+    if(d.existingId && !canEditCategory(d.category)){ showToast('Defect #'+(i+1)+': hanya divisi '+(d.category==='HK'?'HK':'ENG')+' yang bisa ubah'); return; }
+  }
+
+  document.getElementById('saveBtn').disabled=true;
+  showLoading('Menyimpan & upload foto...');
+  try{
+    for(const d of formDefects){
+      const id = d.existingId || ('def_'+Date.now()+'_'+Math.random().toString(36).slice(2,6));
+      // Upload foto
+      const photoCols={};
+      for(const type of ['defect','progress','after']){
+        const urls=[]; let seq=0;
+        for(const p of d.photos[type]){
+          if(p.url) urls.push(p.url);
+          else if(p.isNew && p.dataUrl) urls.push(await uploadPhoto(id,type,p.dataUrl,seq++));
+        }
+        photoCols[type]=urls.length?JSON.stringify(urls):null;
+      }
+      const row={
+        id, report_id:reportId, hotel:HOTEL, area, location, pic, date_report:dateReport,
+        category:d.category, description:d.description.trim(), priority:d.priority, status:d.status,
+        date_target:d.dateTarget||null,
+        pending_reason: d.status==='Pending'?d.pendingReason.trim():null,
+        photo_defect:photoCols.defect, photo_progress:photoCols.progress, photo_after:photoCols.after
+      };
+      if(!d.existingId) row.created_by=currentUser.email;
+      row.updated_by=currentUser.email;
+      row.updated_at=new Date().toISOString();
+      const {error}=await supa.from('defects').upsert(row);
+      if(error) throw new Error(error.message);
+      // Log per item
+      logActivity(d.existingId?'edit':'create', {
+        defectId:id, reportId,
+        detail: (d.existingId?'Edit':'Buat')+' defect ['+d.category+'] di '+location+' — '+d.description.trim().slice(0,80)
+      });
+    }
+    hideLoading();
+    document.getElementById('saveBtn').disabled=false;
+    closeForm();
+    showToast('✅ Laporan tersimpan ('+formDefects.length+' defect)');
+    await loadDefects();
+  }catch(e){
+    hideLoading();
+    document.getElementById('saveBtn').disabled=false;
+    showToast('Gagal: '+e.message);
+  }
+}
+
+// Edit: buka 1 laporan (semua defect dengan report_id sama) ATAU 1 defect tunggal
+async function editDefect(id){
+  const d=defects.find(x=>x.id===id); if(!d) return;
+  if(!canEdit()){
+    const all=[...parsePhotos(d.photo_defect),...parsePhotos(d.photo_progress),...parsePhotos(d.photo_after)];
+    if(all.length){ openGallery(all, 0, d.location+' — '+d.description); }
+    else showToast('Tidak ada foto');
+    return;
+  }
+  // Ambil semua defect dalam laporan yang sama (report_id sama, atau cuma defect ini kalau tidak ada report_id)
+  const group = d.report_id ? defects.filter(x=>x.report_id===d.report_id) : [d];
+  document.getElementById('formTitle').textContent='Edit Laporan';
+  document.getElementById('editId').value=d.id;
+  document.getElementById('reportId').value=d.report_id||('rpt_'+Date.now());
+  document.querySelectorAll('#segArea .seg-opt').forEach(o=>o.classList.remove('active'));
+  setSeg('area',d.area);
+  onAreaChange();
+  // Parse location: "Kamar 510 — extra" atau "Basement — extra" atau plain
+  const loc = d.location||'';
+  const splitIdx = loc.indexOf(' — ');
+  const mainPart = splitIdx>=0 ? loc.slice(0,splitIdx) : loc;
+  const extraPart = splitIdx>=0 ? loc.slice(splitIdx+3) : '';
+  if(d.area==='Room'){
+    const m=mainPart.match(/(\d+)/); const rn=m?m[1]:'';
+    document.getElementById('fRoomSelect').value=rn; onRoomSelect();
+    document.getElementById('fLocation').value=extraPart;
+  } else if(d.area==='Public Area' || d.area==='F&B'){
+    // Cocokkan ke daftar sub-area
+    const list = d.area==='Public Area' ? PUBLIC_AREAS : FB_AREAS;
+    const sel = document.getElementById('fSubAreaSelect');
+    const match = list.find(a=>a===mainPart);
+    if(match){
+      sel.value=match;
+      document.getElementById('fLocation').value=extraPart;
+    } else {
+      // Data lama yang tidak cocok dengan daftar baru — taruh semua di fLocation
+      sel.value='';
+      document.getElementById('fLocation').value=loc;
+    }
+  } else {
+    document.getElementById('fLocation').value=loc;
+  }
+  document.getElementById('fPic').value=d.pic||'';
+  document.getElementById('fDateReport').value=d.date_report||'';
+  // Muat semua defect item dari grup
+  formDefects = group.map(g=>({
+    key:'k'+(++defectKeyCounter),
+    category:g.category||'HK', description:g.description||'', priority:g.priority||'Medium',
+    status:(g.status==='Pending Part/Vendor'?'Pending':g.status)||'Open',
+    dateTarget:g.date_target||'', pendingReason:g.pending_reason||'',
+    progressNote:g.progress_note||'', afterNote:g.after_note||'',
+    photos:{
+      defect:parsePhotos(g.photo_defect).map(u=>({url:u})),
+      progress:parsePhotos(g.photo_progress).map(u=>({url:u})),
+      after:parsePhotos(g.photo_after).map(u=>({url:u}))
+    },
+    existingId:g.id
+  }));
+  if(formDefects.length===0) formDefects=[newDefectItem()];
+  renderDefectItems();
+  document.getElementById('formModal').classList.add('show');
+}
+
+async function deleteDefect(id){
+  const d=defects.find(x=>x.id===id); if(!d) return;
+  if(!currentUser || currentUser.role!=='admin'){ showToast('⛔ Hanya COO yang dapat menghapus defect'); return; }
+  if(!confirm('Hapus defect ini? Foto & data akan dihapus permanen.')) return;
+  showLoading('Menghapus...');
+  try{
+    const {data:files}=await supa.storage.from(BUCKET).list(id);
+    if(files && files.length){ await supa.storage.from(BUCKET).remove(files.map(f=>id+'/'+f.name)); }
+    const {error}=await supa.from('defects').delete().eq('id',id);
+    if(error) throw new Error(error.message);
+    hideLoading();
+    logActivity('delete', {defectId:id, reportId:d.report_id, detail:'Hapus defect ['+(d.category||'?')+'] di '+d.location+' — '+(d.description||'').slice(0,80)});
+    showToast('🗑️ Defect dihapus');
+    await loadDefects();
+  }catch(e){ hideLoading(); showToast('Gagal hapus: '+e.message); }
+}
+
+// ===== UPDATE DEFECT MODAL (status + foto progress/after, 1 defect) =====
+let updPhotos={progress:[],after:[]};
+function openUpdateDefect(id){
+  const d=defects.find(x=>x.id===id); if(!d) return;
+  if(!canEditCategory(d.category)){ showToast('⛔ Defect '+d.category+' hanya bisa diupdate divisi '+(d.category==='HK'?'Housekeeping':'Engineering')); return; }
+  document.getElementById('updDefectId').value=id;
+  document.getElementById('updInfo').innerHTML=`<div class="ui-loc">📍 ${esc(d.location)} <span class="cat-badge ${d.category==='HK'?'cat-hk':'cat-eng'}">${d.category==='HK'?'🧹 HK':'🔧 ENG'}</span></div><div class="ui-desc">${esc(d.description)}</div>`;
+  // status aktif: kalau masih Open, default belum ada pilihan (user harus pilih)
+  const curStatus = (d.status==='Open') ? '' : d.status;
+  document.querySelectorAll('#updSegStatus .seg-opt').forEach(o=>o.classList.toggle('active', o.dataset.v===curStatus));
+  document.getElementById('updPendingReason').value=d.pending_reason||'';
+  document.getElementById('updTarget').value=d.date_target||'';
+  document.getElementById('updDoneBy').value=d.done_by||'';
+  updPhotos={
+    progress: parsePhotos(d.photo_progress).map(u=>({url:u})),
+    after: parsePhotos(d.photo_after).map(u=>({url:u}))
+  };
+  updRenderPhotos();
+  updApplyStatusUI(); // tampilkan field sesuai status terpilih
+  document.getElementById('updateModal').classList.add('show');
+}
+function closeUpdate(){ document.getElementById('updateModal').classList.remove('show'); }
+function updPickStatus(el){
+  document.querySelectorAll('#updSegStatus .seg-opt').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+  updApplyStatusUI();
+}
+// Tampilkan/sembunyikan field sesuai status terpilih
+function updApplyStatusUI(){
+  const s = document.querySelector('#updSegStatus .seg-opt.active')?.dataset.v || '';
+  const show = (id,cond)=>{ document.getElementById(id).style.display = cond?'block':'none'; };
+  show('updPendingWrap', s==='Pending');                 // Pending → alasan
+  show('updProgressWrap', s==='In Progress');            // In Progress → foto progress
+  show('updTargetWrap', s==='In Progress');              // In Progress → target wajib
+  show('updAfterWrap', s==='Done');                      // Done → foto after
+  show('updDoneByWrap', s==='Done');                     // Done → penanggung jawab
+  show('updDoneInfo', s==='Done');                       // Done → info tanggal otomatis
+}
+async function updHandlePhoto(input, type){
+  const files=Array.from(input.files||[]); if(!files.length) return;
+  const room=MAX_PHOTOS-updPhotos[type].length;
+  if(room<=0){ showToast('Maksimal '+MAX_PHOTOS+' foto'); input.value=''; return; }
+  const toAdd=files.slice(0,room);
+  showToast('Mengompres '+toAdd.length+' foto...');
+  for(const f of toAdd){ const c=await compressImage(f); if(c) updPhotos[type].push({dataUrl:c,isNew:true}); }
+  input.value='';
+  updRenderPhotos();
+}
+function updRenderPhotos(){
+  ['progress','after'].forEach(type=>{
+    const grid=document.getElementById('updGrid'+(type==='progress'?'Progress':'After'));
+    document.getElementById('updCount'+(type==='progress'?'Progress':'After')).textContent=updPhotos[type].length+'/'+MAX_PHOTOS;
+    let html=updPhotos[type].map((p,idx)=>`<div class="pg-item"><img src="${p.url||p.dataUrl}" alt=""><button class="pg-rm" type="button" onclick="updRemovePhoto('${type}',${idx})">✕</button></div>`).join('');
+    if(updPhotos[type].length<MAX_PHOTOS) html+=`<div class="pg-add" onclick="document.getElementById('updFile${type==='progress'?'Progress':'After'}').click()"><span class="pa-ic">＋</span><span class="pa-tx">Tambah</span></div>`;
+    grid.innerHTML=html;
+  });
+}
+function updRemovePhoto(type,idx){ updPhotos[type].splice(idx,1); updRenderPhotos(); }
+async function saveUpdate(){
+  const id=document.getElementById('updDefectId').value;
+  const d=defects.find(x=>x.id===id); if(!d) return;
+  const activeEl=document.querySelector('#updSegStatus .seg-opt.active');
+  if(!activeEl){ showToast('⚠️ Pilih status dulu (Progress/Pending/Done)'); return; }
+  const newStatus=activeEl.dataset.v;
+  const pendingReason=document.getElementById('updPendingReason').value.trim();
+  const doneBy=document.getElementById('updDoneBy').value.trim();
+  const targetVal=document.getElementById('updTarget').value;
+  const today=new Date().toISOString().split('T')[0];
+
+  // ===== VALIDASI per status =====
+  if(newStatus==='Pending' && !pendingReason){ showToast('⚠️ Keterangan/alasan Pending wajib diisi'); return; }
+  if(newStatus==='In Progress'){
+    if(updPhotos.progress.length===0){ showToast('⚠️ In Progress wajib lampirkan Foto Progress'); return; }
+    if(!targetVal){ showToast('⚠️ In Progress wajib isi Target Selesai'); return; }
+  }
+  if(newStatus==='Done'){
+    if(updPhotos.after.length===0){ showToast('⚠️ Done wajib lampirkan Foto After'); return; }
+    if(!doneBy){ showToast('⚠️ Done wajib isi nama penanggung jawab penyelesaian'); return; }
+  }
+
+  document.getElementById('updSaveBtn').disabled=true;
+  showLoading('Menyimpan & upload foto...');
+  try{
+    const cols={};
+    for(const type of ['progress','after']){
+      const urls=[]; let seq=0;
+      for(const p of updPhotos[type]){
+        if(p.url) urls.push(p.url);
+        else if(p.isNew && p.dataUrl) urls.push(await uploadPhoto(id,type,p.dataUrl,seq++));
+      }
+      cols[type]=urls.length?JSON.stringify(urls):null;
+    }
+    // Done → target otomatis = tanggal submit (timpa lama)
+    const finalTarget = newStatus==='Done' ? today : (targetVal||null);
+    const update={
+      status:newStatus,
+      pending_reason: newStatus==='Pending'?pendingReason:null,
+      done_by: newStatus==='Done'?doneBy:null,
+      date_target: finalTarget,
+      photo_progress:cols.progress, photo_after:cols.after,
+      updated_by:currentUser.email,
+      updated_at:new Date().toISOString()
+    };
+    const {error}=await supa.from('defects').update(update).eq('id',id);
+    if(error) throw new Error(error.message);
+    hideLoading();
+    document.getElementById('updSaveBtn').disabled=false;
+    // Hitung foto baru yang di-upload
+    const newProgress = updPhotos.progress.filter(p=>p.isNew).length;
+    const newAfter = updPhotos.after.filter(p=>p.isNew).length;
+    // Log: status berubah (kalau berubah dari sebelumnya)
+    if(d.status !== newStatus){
+      let det = (d.status||'?')+' → '+newStatus+' · '+d.location+' — '+(d.description||'').slice(0,60);
+      if(newStatus==='Pending') det += ' (alasan: '+pendingReason.slice(0,80)+')';
+      if(newStatus==='Done') det += ' (oleh: '+doneBy+')';
+      logActivity('update_status', {defectId:id, reportId:d.report_id, detail:det});
+    }
+    // Log: upload foto (kalau ada)
+    if(newProgress>0) logActivity('upload_photo', {defectId:id, reportId:d.report_id, detail:newProgress+' foto Progress · '+d.location});
+    if(newAfter>0) logActivity('upload_photo', {defectId:id, reportId:d.report_id, detail:newAfter+' foto After · '+d.location});
+    closeUpdate();
+    showToast('✅ Defect diupdate');
+    await loadDefects();
+  }catch(e){ hideLoading(); document.getElementById('updSaveBtn').disabled=false; showToast('Gagal: '+e.message); }
+}
+
+async function loadDefects(manual){
+  if(manual) showToast('Menyegarkan...');
+  try{
+    const {data,error}=await supa.from('defects').select('*').eq('hotel',HOTEL).order('updated_at',{ascending:false});
+    if(error) throw new Error(error.message);
+    defects=data||[];
+    // Kompatibilitas: data lama "Pending Part/Vendor" → "Pending"
+    defects.forEach(d=>{ if(d.status==='Pending Part/Vendor') d.status='Pending'; });
+    renderStats(); renderList();
+    if(currentTab==='rooms') renderRoomsView();
+    if(currentTab==='public') renderSubAreaView('Public Area');
+    if(currentTab==='fb') renderSubAreaView('F&B');
+  }catch(e){ showToast('Gagal memuat: '+e.message); }
+}
+function renderStats(){
+  const c={Open:0,'In Progress':0,'Pending':0,Done:0};
+  defects.forEach(d=>{ if(c[d.status]!==undefined) c[d.status]++; });
+  document.getElementById('cOpen').textContent=c['Open'];
+  document.getElementById('cProg').textContent=c['In Progress'];
+  document.getElementById('cPend').textContent=c['Pending'];
+  document.getElementById('cDone').textContent=c['Done'];
+}
+
+// ===== TAB SWITCHER =====
+let currentTab='defects';
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.getElementById('viewDefects').style.display = tab==='defects'?'block':'none';
+  document.getElementById('viewRooms').style.display   = tab==='rooms'?'block':'none';
+  document.getElementById('viewPublic').style.display  = tab==='public'?'block':'none';
+  document.getElementById('viewFB').style.display      = tab==='fb'?'block':'none';
+  // FAB hanya untuk tab Laporan
+  document.getElementById('fab').classList.toggle('hidden', tab!=='defects' || !canEdit());
+  if(tab==='rooms') renderRoomsView();
+  if(tab==='public') renderSubAreaView('Public Area');
+  if(tab==='fb') renderSubAreaView('F&B');
+}
+
+// ===== SUB-AREA VIEW (Public Area & F&B) =====
+function getSubAreaStatus(area, subAreaName){
+  // Cocokkan defect berdasarkan area + mainPart (sebelum " — ")
+  const matches = defects.filter(d=>{
+    if(d.area!==area) return false;
+    const loc=d.location||'';
+    const splitIdx=loc.indexOf(' — ');
+    const main=splitIdx>=0?loc.slice(0,splitIdx):loc;
+    return main===subAreaName;
+  });
+  if(matches.length===0) return {cls:'r-clean', count:0, total:0, matches:[]};
+  const has=s=>matches.some(d=>d.status===s);
+  let cls='r-done';
+  if(has('Open')) cls='r-open';
+  else if(has('In Progress')) cls='r-prog';
+  else if(has('Pending')) cls='r-pend';
+  const active = matches.filter(d=>d.status!=='Done').length;
+  return {cls, count:active||matches.length, total:matches.length, matches};
+}
+function renderSubAreaView(area){
+  const list = area==='Public Area' ? PUBLIC_AREAS : FB_AREAS;
+  const summaryEl = area==='Public Area' ? document.getElementById('publicSummary') : document.getElementById('fbSummary');
+  const listEl = area==='Public Area' ? document.getElementById('publicList') : document.getElementById('fbList');
+  // Hitung summary
+  const counts={clean:0,open:0,prog:0,pend:0,done:0};
+  const map={};
+  list.forEach(name=>{
+    const s=getSubAreaStatus(area, name);
+    map[name]=s;
+    if(s.cls==='r-clean') counts.clean++;
+    else if(s.cls==='r-open') counts.open++;
+    else if(s.cls==='r-prog') counts.prog++;
+    else if(s.cls==='r-pend') counts.pend++;
+    else counts.done++;
+  });
+  summaryEl.innerHTML = `
+    <div class="rsum r-clean"><div class="rsum-n">${counts.clean}</div><div class="rsum-l">No Defect</div></div>
+    <div class="rsum r-open"><div class="rsum-n">${counts.open}</div><div class="rsum-l">Open</div></div>
+    <div class="rsum r-prog"><div class="rsum-n">${counts.prog}</div><div class="rsum-l">Progress</div></div>
+    <div class="rsum r-pend"><div class="rsum-n">${counts.pend}</div><div class="rsum-l">Pending</div></div>
+    <div class="rsum r-done"><div class="rsum-n">${counts.done}</div><div class="rsum-l">Done</div></div>`;
+  // List sub-area (urut sesuai array)
+  listEl.innerHTML = list.map(name=>{
+    const s=map[name];
+    const cntLabel = s.count>0 ? (s.count+' aktif') : 'No Defect';
+    return `<div class="subarea-item ${s.cls}" onclick="openSubAreaHistory('${escAttr(area)}','${escAttr(name)}')">
+      <div class="sa-name">${esc(name)}</div>
+      <div class="sa-cnt">${cntLabel}</div>
+    </div>`;
+  }).join('');
+}
+function escAttr(s){ return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+// ===== SUB-AREA HISTORY MODAL (pakai room history modal yang ada) =====
+let currentSubAreaCtx=null; // {area, name}
+function openSubAreaHistory(area, name){
+  currentSubAreaCtx={area, name};
+  const s=getSubAreaStatus(area, name);
+  document.getElementById('roomHistTitle').textContent = (area==='Public Area'?'🏛️ ':'🍽️ ')+name;
+  document.getElementById('roomHistInfo').innerHTML = `<div class="ui-loc">${area==='Public Area'?'🏛️':'🍽️'} ${esc(name)}</div><div class="ui-desc">Status: <b>${s.matches.length===0?'✨ No Defect List (belum ada laporan)':s.matches.length+' defect tercatat'}</b></div>`;
+  const cnt={open:0,prog:0,pend:0,done:0};
+  s.matches.forEach(d=>{
+    if(d.status==='Open') cnt.open++;
+    else if(d.status==='In Progress') cnt.prog++;
+    else if(d.status==='Pending') cnt.pend++;
+    else if(d.status==='Done') cnt.done++;
+  });
+  document.getElementById('roomHistStats').innerHTML = `
+    <div class="rsum r-open"><div class="rsum-n">${cnt.open}</div><div class="rsum-l">Open</div></div>
+    <div class="rsum r-prog"><div class="rsum-n">${cnt.prog}</div><div class="rsum-l">Progress</div></div>
+    <div class="rsum r-pend"><div class="rsum-n">${cnt.pend}</div><div class="rsum-l">Pending</div></div>
+    <div class="rsum r-done"><div class="rsum-n">${cnt.done}</div><div class="rsum-l">Selesai</div></div>
+    <div class="rsum"><div class="rsum-n">${s.matches.length}</div><div class="rsum-l">Total</div></div>`;
+  const listEl=document.getElementById('roomHistList');
+  if(s.matches.length===0){
+    listEl.innerHTML='<div class="empty-state" style="padding:30px 20px;"><div class="ic">✨</div><h3>No Defect List</h3><p>Belum ada laporan defect untuk sub-area ini.</p></div>';
+  } else {
+    const sorted=[...s.matches].sort((a,b)=>new Date(b.updated_at||b.date_report||0)-new Date(a.updated_at||a.date_report||0));
+    listEl.innerHTML=sorted.map(d=>{
+      const cat=d.category?`<span class="cat-badge ${d.category==='HK'?'cat-hk':'cat-eng'}">${d.category==='HK'?'🧹 HK':'🔧 ENG'}</span>`:'';
+      return `<div class="defect-item-card" style="cursor:pointer;" onclick="closeRoomHistory();openUpdateDefect('${d.id}')">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+          ${cat}<span class="badge ${statusClass[d.status]}">${statusShort[d.status]}</span>
+          <span class="prio ${prioClass[d.priority]||'p-med'}">${d.priority||'-'}</span>
+        </div>
+        <div class="desc" style="font-size:14px;font-weight:600;margin-bottom:4px;">${esc(d.description)}</div>
+        <div class="meta" style="font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px;">
+          ${d.date_report?`<span>📅 Lapor: ${fmtDate(d.date_report)}</span>`:''}
+          ${d.date_target?`<span>🎯 Target: ${fmtDate(d.date_target)}</span>`:''}
+          ${d.done_by?`<span>✅ Oleh: ${esc(d.done_by)}</span>`:''}
+        </div>
+        ${renderPhotoStripFor(d)}
+        ${bylineHtml(d)}
+        ${currentUser&&currentUser.role==='admin'?`<div style="display:flex;justify-content:flex-end;padding:0 4px 4px;"><button class="foot-btn danger" onclick="event.stopPropagation();deleteFromHistory('${d.id}')" style="padding:7px 14px;font-size:12px;">🗑️ Hapus Defect Ini</button></div>`:''}
+      </div>`;
+    }).join('');
+  }
+  // Hijack tombol "+ Tambah Defect" untuk sub-area context
+  const btn=document.getElementById('roomHistNewBtn');
+  btn.style.display = canEdit() ? 'block' : 'none';
+  btn.onclick = createDefectForSubArea;
+  btn.textContent = '+ Tambah Defect untuk Sub-Area Ini';
+  document.getElementById('roomHistoryModal').classList.add('show');
+}
+function createDefectForSubArea(){
+  if(!currentSubAreaCtx) return;
+  const {area, name} = currentSubAreaCtx;
+  closeRoomHistory();
+  if(!canEdit()){ showToast('Tidak ada akses'); return; }
+  openForm();
+  setTimeout(()=>{
+    setSeg('area', area);
+    onAreaChange();
+    const sel=document.getElementById('fSubAreaSelect');
+    if(sel){ sel.value=name; }
+  }, 60);
+}
+
+// ===== ROOMS VIEW =====
+// Hitung status agregat per kamar (prioritas: Open > Progress > Pending > Done > Clean)
+function getRoomStatus(roomNum){
+  // Cocokkan defect yang lokasinya mengandung nomor kamar ini
+  const matches = defects.filter(d=>{
+    if(d.area!=='Room') return false;
+    const m=(d.location||'').match(/(\d+)/);
+    return m && m[1]===roomNum;
+  });
+  if(matches.length===0) return {cls:'r-clean', count:0, hasOpen:false};
+  const has = s=>matches.some(d=>d.status===s);
+  let cls='r-done';
+  if(has('Open')) cls='r-open';
+  else if(has('In Progress')) cls='r-prog';
+  else if(has('Pending')) cls='r-pend';
+  // Hitung defect aktif (bukan Done)
+  const active = matches.filter(d=>d.status!=='Done').length;
+  return {cls, count:active||matches.length, total:matches.length, matches};
+}
+
+function renderRoomsView(){
+  // Summary
+  const counts={clean:0,open:0,prog:0,pend:0,done:0};
+  const roomStatusMap={};
+  ROOMS.forEach(r=>{
+    const s=getRoomStatus(r.r);
+    roomStatusMap[r.r]=s;
+    if(s.cls==='r-clean') counts.clean++;
+    else if(s.cls==='r-open') counts.open++;
+    else if(s.cls==='r-prog') counts.prog++;
+    else if(s.cls==='r-pend') counts.pend++;
+    else counts.done++;
+  });
+  document.getElementById('roomsSummary').innerHTML = `
+    <div class="rsum r-clean"><div class="rsum-n">${counts.clean}</div><div class="rsum-l">No Defect</div></div>
+    <div class="rsum r-open"><div class="rsum-n">${counts.open}</div><div class="rsum-l">Open</div></div>
+    <div class="rsum r-prog"><div class="rsum-n">${counts.prog}</div><div class="rsum-l">Progress</div></div>
+    <div class="rsum r-pend"><div class="rsum-n">${counts.pend}</div><div class="rsum-l">Pending</div></div>
+    <div class="rsum r-done"><div class="rsum-n">${counts.done}</div><div class="rsum-l">Done</div></div>`;
+
+  // Group by floor (digit pertama nomor kamar)
+  const byFloor={};
+  ROOMS.forEach(r=>{
+    const floor = r.r.slice(0,-2) || r.r.slice(0,1); // mis "501" → "5", "1206" → "12"
+    if(!byFloor[floor]) byFloor[floor]=[];
+    byFloor[floor].push(r);
+  });
+  const floors=Object.keys(byFloor).sort((a,b)=>parseInt(a)-parseInt(b));
+  document.getElementById('roomsFloors').innerHTML = floors.map(f=>{
+    const rooms=byFloor[f].sort((a,b)=>parseInt(a.r)-parseInt(b.r));
+    const cells=rooms.map(r=>{
+      const s=roomStatusMap[r.r];
+      const cnt = s.count>0 ? `<span class="rc-cnt">${s.count}</span>` : '';
+      return `<div class="room-cell ${s.cls}" onclick="openRoomHistory('${r.r}')"><span class="rc-num">${r.r}</span><span class="rc-tag">${r.t}</span>${cnt}</div>`;
+    }).join('');
+    return `<div class="floor-block">
+      <div class="floor-title">Lantai ${parseInt(f)}  ·  ${rooms.length} kamar</div>
+      <div class="room-grid">${cells}</div>
+    </div>`;
+  }).join('');
+}
+
+// ===== ROOM HISTORY MODAL =====
+let currentRoomNum=null;
+function openRoomHistory(roomNum){
+  currentRoomNum=roomNum;
+  const room = ROOMS.find(r=>r.r===roomNum);
+  const typeName = room ? (TYPE_NAMES[room.t]||room.t) : '';
+  const s=getRoomStatus(roomNum);
+  document.getElementById('roomHistTitle').textContent = 'Kamar '+roomNum;
+  document.getElementById('roomHistInfo').innerHTML = `<div class="ui-loc">🛏️ Kamar ${roomNum} — ${typeName}</div><div class="ui-desc">Status: <b>${s.cls==='r-clean'?'✨ No Defect List (belum ada laporan)':s.matches.length+' defect tercatat'}</b></div>`;
+  // Stats per kamar
+  const cnt={open:0,prog:0,pend:0,done:0};
+  (s.matches||[]).forEach(d=>{
+    if(d.status==='Open') cnt.open++;
+    else if(d.status==='In Progress') cnt.prog++;
+    else if(d.status==='Pending') cnt.pend++;
+    else if(d.status==='Done') cnt.done++;
+  });
+  document.getElementById('roomHistStats').innerHTML = `
+    <div class="rsum r-open"><div class="rsum-n">${cnt.open}</div><div class="rsum-l">Open</div></div>
+    <div class="rsum r-prog"><div class="rsum-n">${cnt.prog}</div><div class="rsum-l">Progress</div></div>
+    <div class="rsum r-pend"><div class="rsum-n">${cnt.pend}</div><div class="rsum-l">Pending</div></div>
+    <div class="rsum r-done"><div class="rsum-n">${cnt.done}</div><div class="rsum-l">Selesai</div></div>
+    <div class="rsum"><div class="rsum-n">${s.matches?s.matches.length:0}</div><div class="rsum-l">Total</div></div>`;
+  // List defects (terbaru dulu)
+  const listEl=document.getElementById('roomHistList');
+  if(!s.matches || s.matches.length===0){
+    listEl.innerHTML = '<div class="empty-state" style="padding:30px 20px;"><div class="ic">✨</div><h3>No Defect List</h3><p>Belum ada laporan defect untuk kamar ini.</p></div>';
+  } else {
+    const sorted=[...s.matches].sort((a,b)=>new Date(b.updated_at||b.date_report||0)-new Date(a.updated_at||a.date_report||0));
+    listEl.innerHTML = sorted.map(d=>{
+      const cat = d.category ? `<span class="cat-badge ${d.category==='HK'?'cat-hk':'cat-eng'}">${d.category==='HK'?'🧹 HK':'🔧 ENG'}</span>` : '';
+      return `<div class="defect-item-card" style="cursor:pointer;" onclick="closeRoomHistory();openUpdateDefect('${d.id}')">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+          ${cat}
+          <span class="badge ${statusClass[d.status]}">${statusShort[d.status]}</span>
+          <span class="prio ${prioClass[d.priority]||'p-med'}">${d.priority||'-'}</span>
+        </div>
+        <div class="desc" style="font-size:14px;font-weight:600;margin-bottom:4px;">${esc(d.description)}</div>
+        <div class="meta" style="font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px;">
+          ${d.date_report?`<span>📅 Lapor: ${fmtDate(d.date_report)}</span>`:''}
+          ${d.date_target?`<span>🎯 Target: ${fmtDate(d.date_target)}</span>`:''}
+          ${d.done_by?`<span>✅ Oleh: ${esc(d.done_by)}</span>`:''}
+        </div>
+        ${renderPhotoStripFor(d)}
+        ${bylineHtml(d)}
+        ${currentUser&&currentUser.role==='admin'?`<div style="display:flex;justify-content:flex-end;padding:0 4px 4px;"><button class="foot-btn danger" onclick="event.stopPropagation();deleteFromHistory('${d.id}')" style="padding:7px 14px;font-size:12px;">🗑️ Hapus Defect Ini</button></div>`:''}
+      </div>`;
+    }).join('');
+  }
+  const btn=document.getElementById('roomHistNewBtn');
+  btn.onclick = createDefectForRoom;
+  btn.textContent = '+ Tambah Defect untuk Kamar Ini';
+  document.getElementById('roomHistoryModal').classList.add('show');
+  btn.style.display = canEdit() ? 'block' : 'none';
+}
+function closeRoomHistory(){ document.getElementById('roomHistoryModal').classList.remove('show'); currentRoomNum=null; }
+// Hapus defect dari modal history (admin only)
+async function deleteFromHistory(id){
+  if(currentUser?.role!=='admin'){ showToast('⛔ Hanya COO yang dapat menghapus'); return; }
+  closeRoomHistory();
+  // Beri sedikit waktu animasi tutup, lalu trigger delete (yg akan tampilkan confirm sendiri)
+  setTimeout(()=>deleteDefect(id), 150);
+}
+// Buat defect baru langsung dengan kamar terisi
+function createDefectForRoom(){
+  const rn=currentRoomNum;
+  closeRoomHistory();
+  if(!canEdit()){ showToast('Tidak ada akses'); return; }
+  openForm();
+  // Set area & kamar setelah form siap
+  setTimeout(()=>{
+    setSeg('area','Room');
+    onAreaChange();
+    const sel=document.getElementById('fRoomSelect');
+    if(sel){ sel.value=rn; onRoomSelect(); }
+  }, 60);
+}
+
+// ===== SEARCH =====
+function onSearchInput(){
+  const v = document.getElementById('searchBox').value;
+  currentSearch = v.toLowerCase().trim();
+  document.getElementById('searchClear').style.display = v ? 'flex' : 'none';
+  renderList();
+}
+function clearSearch(){
+  document.getElementById('searchBox').value='';
+  currentSearch='';
+  document.getElementById('searchClear').style.display='none';
+  renderList();
+}
+
+function renderList(){
+  let list=defects;
+  if(currentArea!=='all') list=list.filter(d=>d.area===currentArea);
+  if(currentCat!=='all') list=list.filter(d=>d.category===currentCat);
+  if(currentStatusFilter) list=list.filter(d=>d.status===currentStatusFilter);
+  else list=list.filter(d=>d.status!=='Done'); // default: sembunyikan Done
+  // Search filter: cocokkan ke location, area, description, pic, category
+  if(currentSearch){
+    const q=currentSearch;
+    list=list.filter(d=>{
+      const hay = [d.location, d.area, d.description, d.pic, d.category]
+        .map(s=>(s||'').toLowerCase()).join(' | ');
+      return hay.includes(q);
+    });
+  }
+  const cont=document.getElementById('defectList');
+  if(list.length===0){
+    let msg;
+    if(defects.length===0) msg = canEdit()?'Tap tombol + untuk menambah laporan pertama.':'Belum ada defect yang dilaporkan.';
+    else if(currentSearch) msg = 'Tidak ada hasil untuk pencarian "<b>'+esc(currentSearch)+'</b>"';
+    else if(!currentStatusFilter) msg = 'Tidak ada defect aktif. 🎉<br><small>Defect yang sudah Done disembunyikan. Tap kotak "Done" di atas untuk lihat.</small>';
+    else msg = 'Tidak ada defect untuk filter ini.';
+    cont.innerHTML=`<div class="empty-state"><div class="ic">${currentSearch?'🔍':'✨'}</div><h3>${defects.length===0?'Belum ada defect':'Tidak ditemukan'}</h3><p>${msg}</p></div>`;
+    return;
+  }
+  // Kelompokkan per report_id (atau per id kalau tidak ada report_id)
+  const groups={};
+  const order=[];
+  list.forEach(d=>{
+    const gid=d.report_id||d.id;
+    if(!groups[gid]){ groups[gid]=[]; order.push(gid); }
+    groups[gid].push(d);
+  });
+
+  const today=new Date().toISOString().split('T')[0];
+  const photoCell=(d,val,label,type)=>{
+    const arr=parsePhotos(val);
+    if(arr.length){
+      const more = arr.length>1 ? `<span class="ph-count">+${arr.length-1}</span>` : '';
+      return `<div class="ph" onclick="event.stopPropagation();openGallery(${JSON.stringify(arr).replace(/"/g,'&quot;')},0,'${label} — '+${JSON.stringify(d.location)})"><img src="${arr[0]}" alt="${label}">${more}<span class="ph-label">${label}</span></div>`;
+    }
+    return `<div class="ph empty"><span class="ph-icon">📷</span><span class="ph-label">${label}</span></div>`;
+  };
+
+  cont.innerHTML = order.map((gid,gi)=>{
+    const items=groups[gid];
+    const head=items[0]; // area/lokasi/pic sama untuk seluruh grup
+    const reportNum=order.length - gi;
+    const defectsHtml = items.map((d,di)=>{
+      const late=d.date_target && d.status!=='Done' && d.date_target<today;
+      const catEditable=canEditCategory(d.category);
+      const catBadge=d.category?`<span class="cat-badge ${d.category==='HK'?'cat-hk':'cat-eng'}">${d.category==='HK'?'🧹 HK':'🔧 ENG'}</span>`:'';
+      return `<div class="sub-defect">
+        <div class="sub-head" onclick="editDefect('${d.id}')">
+          <div class="sub-body">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap;">
+              <span class="def-num">${di+1}.</span>${catBadge}
+              <span class="badge ${statusClass[d.status]}">${statusShort[d.status]}</span>
+              <span class="prio ${prioClass[d.priority]||'p-med'}">${d.priority||'-'}</span>
+            </div>
+            <div class="desc">${esc(d.description)}</div>
+            ${d.date_target?`<div class="meta"><span style="${late?'color:var(--open);font-weight:700;':''}">🎯 Target: ${fmtDate(d.date_target)}${late?' ⚠️ Telat':''}</span></div>`:'<div class="meta"><span style="color:var(--muted2);">🎯 Target belum diisi</span></div>'}
+          </div>
+        </div>
+        ${d.status==='Pending' && d.pending_reason ? `<div class="pending-banner">🟣 <b>Pending:</b> ${esc(d.pending_reason)}</div>` : ''}
+        ${d.status==='Done' && d.done_by ? `<div class="done-banner">🟢 <b>Selesai oleh:</b> ${esc(d.done_by)}</div>` : ''}
+        <div class="photo-strip">
+          ${photoCell(d,d.photo_defect,'Defect','defect')}
+          ${photoCell(d,d.photo_progress,'Progress','progress')}
+          ${photoCell(d,d.photo_after,'After','after')}
+        </div>
+        ${bylineHtml(d)}
+        <div class="defect-foot">
+          <button class="foot-btn primary-ghost" onclick="openUpdateDefect('${d.id}')" ${catEditable?'':'disabled'} style="flex:3;">🛠️ Update Defect</button>
+          ${currentUser&&currentUser.role==='admin'?`<button class="foot-btn" onclick="openHistory('${d.id}')" title="History">📜</button>`:''}
+          ${currentUser&&currentUser.role==='admin'?`<button class="foot-btn danger" onclick="deleteDefect('${d.id}')">🗑️</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="report-card" style="animation-delay:${gi*0.04}s">
+      <div class="report-head" onclick="editDefect('${head.id}')">
+        <div>
+          <span class="def-num">Laporan #${reportNum}</span>
+          <span class="area-tag">${areaIcon[head.area]||'📦'} ${head.area}</span>
+        </div>
+        <div class="report-loc">📍 ${esc(head.location)}</div>
+        <div class="report-meta">
+          ${head.pic?`<span>👤 ${esc(head.pic)}</span>`:''}
+          ${head.date_report?`<span>📅 ${fmtDate(head.date_report)}</span>`:''}
+          <span>🔧 ${items.length} defect</span>
+        </div>
+      </div>
+      ${defectsHtml}
+    </div>`;
+  }).join('');
+}
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmtDate(s){ if(!s) return ''; const d=new Date(s+'T00:00:00'); return d.toLocaleDateString('id-ID',{day:'numeric',month:'short'}); }
+function setAreaFilter(area){ currentArea=area; document.querySelectorAll('#areaFilters .chip').forEach(c=>c.classList.toggle('active',c.dataset.area===area)); renderList(); }
+function setCatFilter(cat){ currentCat=cat; document.querySelectorAll('#catFilters .chip').forEach(c=>c.classList.toggle('active',c.dataset.cat===cat)); renderList(); }
+function toggleFilter(status){ currentStatusFilter=(currentStatusFilter===status)?null:status; document.querySelectorAll('.stat').forEach(s=>s.classList.toggle('active',s.dataset.f===currentStatusFilter)); renderList(); }
+let galleryPhotos=[], galleryIdx=0, galleryLabel='';
+function openGallery(photos, startIdx, label){
+  galleryPhotos = Array.isArray(photos) ? photos : parsePhotos(photos);
+  galleryIdx = startIdx||0;
+  galleryLabel = label||'';
+  if(!galleryPhotos.length) return;
+  renderGallery();
+  document.getElementById('viewer').classList.add('show');
+}
+function renderGallery(){
+  document.getElementById('viewerImg').src = galleryPhotos[galleryIdx];
+  document.getElementById('viewerLabel').textContent = galleryLabel + '  ('+(galleryIdx+1)+'/'+galleryPhotos.length+')';
+  document.getElementById('galPrev').style.display = galleryPhotos.length>1 ? 'flex':'none';
+  document.getElementById('galNext').style.display = galleryPhotos.length>1 ? 'flex':'none';
+}
+function galleryNav(e, dir){ e.stopPropagation(); galleryIdx=(galleryIdx+dir+galleryPhotos.length)%galleryPhotos.length; renderGallery(); }
+function closeViewer(){ document.getElementById('viewer').classList.remove('show'); }
+
+function waRecap(){
+  if(defects.length===0){ showToast('Belum ada defect untuk direkap'); return; }
+  const c={Open:0,'In Progress':0,'Pending':0,Done:0};
+  defects.forEach(d=>{ if(c[d.status]!==undefined) c[d.status]++; });
+  let msg=`🔧 *LAPORAN DEFECT FOLLOW UP*\n━━━━━━━━━━━━━━━━━━━━\n🏨 ${HOTEL}\n📅 ${new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}\n\n📊 *RINGKASAN:*\n🔴 Open: ${c['Open']}\n🟡 In Progress: ${c['In Progress']}\n🟣 Pending: ${c['Pending']}\n🟢 Done: ${c['Done']}\n📁 Total: ${defects.length} defect\n`;
+  ['Room','Public Area','F&B','Other'].forEach(area=>{
+    const items=defects.filter(d=>d.area===area && d.status!=='Done');
+    if(items.length===0) return;
+    msg+=`\n${areaIcon[area]} *${area.toUpperCase()}* (${items.length} aktif)\n`;
+    items.forEach((d,i)=>{
+      const st={'Open':'🔴','In Progress':'🟡','Pending':'🟣','Done':'🟢'}[d.status];
+      msg+=`${i+1}. ${st} ${d.category?('['+d.category+'] '):''}[${d.priority}] ${d.location} — ${d.description}`;
+      if(d.pic) msg+=` (PIC: ${d.pic})`;
+      if(d.date_target) msg+=` 🎯${fmtDate(d.date_target)}`;
+      msg+=`\n`;
+    });
+  });
+  const done=defects.filter(d=>d.status==='Done');
+  if(done.length){ msg+=`\n✅ *SELESAI (${done.length}):*\n`; done.slice(0,10).forEach((d,i)=>{ msg+=`${i+1}. ${d.location} — ${d.description}\n`; }); }
+  msg+=`━━━━━━━━━━━━━━━━━━━━\n_Defect Follow Up Tracker_`;
+  if(navigator.share){ navigator.share({text:msg}).catch(()=>copyText(msg)); } else { copyText(msg); }
+}
+function copyText(t){
+  navigator.clipboard.writeText(t).then(()=>showToast('📋 Recap disalin! Paste ke WhatsApp')).catch(()=>{
+    const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); showToast('📋 Recap disalin!');
+  });
+}
+let toastTimer;
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2600); }
+function showLoading(txt){ document.getElementById('loadingText').textContent=txt||'Memuat...'; document.getElementById('loadingOverlay').classList.add('show'); }
+function hideLoading(){ document.getElementById('loadingOverlay').classList.remove('show'); }
+
+window.addEventListener('load', async ()=>{
+  const saved=localStorage.getItem('defect_user_email');
+  if(saved){
+    showLoading('Masuk...');
+    try{
+      const {data}=await supa.from('defect_users').select('email,role,name,division').eq('email',saved).maybeSingle();
+      hideLoading();
+      if(data){ currentUser=data; enterApp(); return; }
+    }catch(e){ hideLoading(); }
+  }
+});
+document.getElementById('loginEmail').addEventListener('keypress',e=>{ if(e.key==='Enter') doLogin(); });
+</script>
+</body>
+</html>
