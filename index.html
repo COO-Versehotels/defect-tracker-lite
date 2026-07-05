@@ -963,7 +963,9 @@ function onRoomSelect(){
 //   COO / CEO  -> full edit access (admin)
 //   Corporate  -> view only (matches "Corporate (view only)" in Command Center)
 async function ssoDirectLogin(email, ccRole, ccName){
-  const mappedRole = (ccRole === 'COO' || ccRole === 'CEO') ? 'admin' : 'viewer';
+  let mappedRole = 'viewer';
+  if (ccRole === 'Admin') mappedRole = 'admin';
+  else if (ccRole === 'Corporate-Editor' || ccRole === 'CEO') mappedRole = 'editor';
   const displayNameVal = ccName || email.split('@')[0];
   currentUser = { email, name: displayNameVal, role: mappedRole, division: 'ALL', hotels: [HOTEL] };
   localStorage.setItem('defect_user_email', email);
